@@ -31,7 +31,7 @@ h2{font-size:28px;margin:4px 0 6px}.sub{color:var(--mu);margin:0 0 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
 .pc{background:var(--card);border:1px solid var(--ln);border-radius:20px;overflow:hidden;cursor:pointer}.pc:focus-visible,button:focus-visible{outline:3px solid var(--sf);outline-offset:2px}
 .pc:hover{box-shadow:0 8px 28px rgba(107,66,38,.15)}
-.ph{height:130px;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:"Playfair Display",serif;font-size:20px}
+.ph{position:relative;height:160px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:"Playfair Display",serif;font-size:20px}.ph svg{position:absolute;inset:0;width:100%;height:100%}.ph span{position:relative;text-shadow:0 1px 6px rgba(0,0,0,.5)}.hero-ph{height:230px;border-radius:14px;margin:10px 0 4px}
 .pb{padding:16px}.pb h3{margin:0;font-size:18px}.mu{color:var(--mu);font-size:14px}
 .cp{display:inline-block;font-size:12px;border-radius:99px;padding:3px 10px;margin:8px 6px 0 0}
 .r{background:var(--redb);color:var(--red)}.a{background:var(--ambb);color:var(--amb)}.g{background:var(--okb);color:var(--ok)}
@@ -87,6 +87,59 @@ const SEED=[["Goa","Azure Bliss Villa","Priya D.",8500,"beachfront"],["Goa","Pan
 ["Munnar","Tea Garden Bungalow","George T.",6400,"nature"],["Munnar","Kerala Family Homestay","Lissy M.",3800,"budget"],
 ["Varanasi","Ghats Heritage Mansion","Ramesh S.",5200,"heritage"],["Varanasi","Silk Weaver's Home","Irfan A.",2800,"heritage"],
 ["Himachal","Spiti Mud House","Dorje N.",3200,"mountain"],["Himachal","Kasol Pine Nest","Ratan T.",2800,"nature",{h:30,al:1640,f:0,n:["Jio","Airtel","BSNL"]}]];
+const SCN={Goa:{k:"beach",sky:["#ff9f5a","#ffe3b0"],sun:"#fff3c4",gr:"#e9cf94"},
+ Pondicherry:{k:"beach",sky:["#e79bc4","#ffe2d2"],sun:"#fff0d0",gr:"#e8d2a6"},
+ Manali:{k:"mount",sky:["#5f9fd6","#e2f1fb"],sun:"#fff",gr:"#2f5d46",rock:"#5f7490"},
+ Himachal:{k:"mount",sky:["#3f7fc2","#d3e8f6"],sun:"#fff",gr:"#8a7358",rock:"#a08a6c",bare:1},
+ Rishikesh:{k:"river",sky:["#7fbfe6","#ecf7fc"],sun:"#fff6d0",gr:"#3b7a4a"},
+ Jaipur:{k:"fort",sky:["#f28f6b","#ffe5c4"],sun:"#fff1c8",gr:"#c98c5a"},
+ Coorg:{k:"hills",sky:["#9fd3c4","#eef8f2"],sun:"#fffbe0",gr:"#2f6b2f"},
+ Munnar:{k:"hills",sky:["#aedcdd","#f3fbf6"],sun:"#fffbe0",gr:"#3a8a45"},
+ Varanasi:{k:"ghat",sky:["#ee9a4e","#ffe0b0"],sun:"#fff0c0",gr:"#8a5a3a"}};
+function scene(l){
+ const S=SCN[l.city]||SCN.Coorg;let s=7;for(const c of String(l.id)+l.name)s=(s*31+c.charCodeAt(0))>>>0;
+ const r=i=>{const x=Math.sin(s*.001+i*12.9898)*43758.5453;return x-Math.floor(x)},f=n=>n.toFixed(1),id="g"+s;
+ let o=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${S.sky[0]}"/><stop offset="1" stop-color="${S.sky[1]}"/></linearGradient><linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#1C0A02" stop-opacity="0"/><stop offset="1" stop-color="#1C0A02" stop-opacity=".7"/></linearGradient></defs><rect width="400" height="200" fill="url(#${id})"/>`;
+ o+=`<circle cx="${f(60+r(1)*280)}" cy="${f(38+r(2)*30)}" r="${f(18+r(3)*10)}" fill="${S.sun}" opacity=".92"/>`;
+ for(let i=0;i<3;i++){const cx=30+r(4+i)*340,cy=22+r(7+i)*50;o+=`<g fill="#fff" opacity=".65"><ellipse cx="${f(cx)}" cy="${f(cy)}" rx="30" ry="7"/><ellipse cx="${f(cx+14)}" cy="${f(cy-5)}" rx="17" ry="7"/></g>`}
+ const ridge=(col,base,amp,n,off,snow)=>{const w=400/n;let p=`M0 200 L0 ${base}`,sn="";for(let i=0;i<n;i++){const px=(i+.5)*w,py=base-amp*(.5+.5*r(off+i));p+=` L${f(px)} ${f(py)} L${f((i+1)*w)} ${base}`;
+   if(snow)sn+=`<polygon points="${f(px)},${f(py)} ${f(px-w*.2)},${f(py+amp*.3)} ${f(px-w*.07)},${f(py+amp*.22)} ${f(px)},${f(py+amp*.34)} ${f(px+w*.08)},${f(py+amp*.22)} ${f(px+w*.2)},${f(py+amp*.3)}" fill="#fff" opacity=".95"/>`}
+   return `<path d="${p} L400 200Z" fill="${col}"/>${sn}`};
+ const roll=(col,base,amp,off,op)=>{let p=`M0 200 L0 ${base}`;for(let i=0;i<4;i++){const x=i*100;p+=` Q${x+50} ${f(base-amp*(.4+r(off+i)))} ${x+100} ${f(base+(r(off+i+9)-.5)*amp*.5)}`}return `<path d="${p} L400 200Z" fill="${col}" opacity="${op||1}"/>`};
+ const pine=(x,y,z,c)=>`<g fill="${c}"><rect x="${f(x-1.5)}" y="${f(y-z*.4)}" width="3" height="${f(z*.4)}" fill="#3b2a1a"/><polygon points="${f(x)},${f(y-z*2.3)} ${f(x-z*.55)},${f(y-z*1.1)} ${f(x+z*.55)},${f(y-z*1.1)}"/><polygon points="${f(x)},${f(y-z*1.7)} ${f(x-z*.75)},${f(y-z*.4)} ${f(x+z*.75)},${f(y-z*.4)}"/></g>`;
+ const palm=(x,y,z,ln)=>{const tx=x+ln*z,ty=y-z;let q=`<path d="M${f(x)} ${f(y)} Q${f(x+ln*z*.2)} ${f(y-z*.6)} ${f(tx)} ${f(ty)}" stroke="#6b4a2a" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+   for(const a of [-160,-125,-90,-55,-20,15]){const rd=a*Math.PI/180,ex=tx+Math.cos(rd)*z*.8,ey=ty+Math.sin(rd)*z*.45+z*.25;q+=`<path d="M${f(tx)} ${f(ty)} Q${f((tx+ex)/2)} ${f(ty-z*.35+Math.sin(rd)*z*.2)} ${f(ex)} ${f(ey)} Q${f((tx+ex)/2)} ${f(ty-z*.1)} ${f(tx)} ${f(ty)}" fill="#2f7a3a"/>`}return q};
+ const k=S.k;
+ if(k==="mount"){o+=ridge(S.rock,115,70,5,10,!S.bare)+ridge(S.bare?"#7d6a50":"#3f5a76",135,45,6,20,0)+`<path d="M0 200 L0 150 Q200 135 400 152 L400 200Z" fill="${S.gr}"/>`;
+  if(!S.bare)for(let i=0;i<9;i++)o+=pine(15+i*47+r(30+i)*20,150+r(40+i)*20,10+r(50+i)*8,i%2?"#1f4a38":"#2a5c45")}
+ else if(k==="beach"){o+=`<rect y="116" width="400" height="60" fill="#2a9db8"/><rect y="116" width="400" height="22" fill="#6fd0dd" opacity=".6"/>`;
+  for(let i=0;i<9;i++)o+=`<path d="M${f(r(60+i)*380)} ${f(130+r(70+i)*38)} h${f(16+r(80+i)*16)}" stroke="#fff" stroke-width="2" opacity=".6" stroke-linecap="round"/>`;
+  o+=`<path d="M0 200 L0 160 Q200 142 400 162 L400 200Z" fill="${S.gr}"/>`+palm(30+r(90)*40,170,62,.35)+palm(330+r(91)*40,172,52,-.4)}
+ else if(k==="river"){o+=ridge("#5a9a6a",120,60,5,10,0)+ridge("#3b7a4a",138,40,6,20,0)+`<rect y="138" width="400" height="40" fill="#3f9cc4"/>`;
+  for(let i=0;i<8;i++)o+=`<path d="M${f(r(60+i)*370)} ${f(144+r(70+i)*28)} q8 -4 16 0 t16 0" stroke="#fff" stroke-width="1.6" fill="none" opacity=".7"/>`;
+  o+=`<g stroke="#2a2a2a" fill="none"><path d="M80 100 L80 128 M320 100 L320 128" stroke-width="4"/><path d="M60 118 L340 118" stroke-width="3"/><path d="M80 100 Q200 132 320 100" stroke-width="1.6"/>`;
+  for(let x=100;x<320;x+=20)o+=`<path d="M${x} ${f(100+ (1-Math.pow((x-200)/120,2))*14*0+ (1-Math.pow((x-200)/120,2))*8+ (Math.pow((x-200)/120,2))*0)} V118" stroke-width=".8"/>`;
+  o+=`</g><path d="M0 200 L0 174 Q200 164 400 176 L400 200Z" fill="${S.gr}"/>`}
+ else if(k==="fort"){o+=ridge("#d8a37a",125,45,5,10,0);
+  let w=`<g fill="#d9856a"><rect x="60" y="98" width="280" height="62"/>`;for(let x=60;x<340;x+=14)w+=`<rect x="${x}" y="91" width="8" height="8"/>`;
+  for(const x of [60,190,320])w+=`<rect x="${x-10}" y="70" width="20" height="90" fill="#c9704f"/><path d="M${x-12} 70 a12 12 0 0 1 24 0Z" fill="#f0c38a"/><rect x="${x-1}" y="52" width="2" height="9" fill="#f0c38a"/>`;
+  w+=`<path d="M170 160 v-26 a20 20 0 0 1 40 0 v26Z" fill="#5a2a1a"/>`;for(let x=100;x<300;x+=40)if(Math.abs(x-190)>30)w+=`<path d="M${x} 130 v-14 a7 7 0 0 1 14 0 v14Z" fill="#7a3a24"/>`;
+  o+=w+`</g><path d="M0 200 L0 160 Q200 154 400 162 L400 200Z" fill="${S.gr}"/>`}
+ else if(k==="ghat"){o+=`<rect y="150" width="400" height="50" fill="#d4934f"/><rect y="150" width="400" height="14" fill="#f3b878" opacity=".6"/>`;
+  for(let i=0;i<8;i++)o+=`<rect x="0" y="${100+i*7}" width="${300-i*22}" height="8" fill="${i%2?"#9a6a45":"#b07a52"}"/>`;
+  for(const [x,h] of [[50,52],[110,70],[170,48],[230,60]])o+=`<path d="M${x-15} 100 Q${x-13} ${100-h*.4} ${x} ${100-h} Q${x+13} ${100-h*.4} ${x+15} 100Z" fill="#5a3320"/><circle cx="${x}" cy="${100-h-3}" r="2.5" fill="#5a3320"/>`;
+  const bx=250+r(95)*100;o+=`<path d="M${f(bx)} 172 q30 12 60 0 l-6 8 h-48Z" fill="#3a2214"/><path d="M${f(bx+30)} 172 v-14" stroke="#3a2214" stroke-width="2"/>`}
+ else{o+=roll("#7fb88a",118,30,10,.8)+roll(S.gr,138,34,20,1)+`<ellipse cx="${f(120+r(5)*160)}" cy="130" rx="110" ry="9" fill="#fff" opacity=".45"/>`;
+  for(let j=0;j<6;j++)o+=`<path d="M0 ${150+j*6} Q200 ${140+j*6-r(j)*8} 400 ${152+j*6}" stroke="#1f5a2a" stroke-width="1.4" fill="none" opacity=".5"/>`;
+  o+=roll("#1f4d28",168,18,30,1)}
+ // homestay
+ const hx=40+r(9)*230,hw=74+r(10)*20,hy=186,hh=40,wall=["#f4e3c8","#e9c9a0","#d9ece4","#f6d7c3","#fff1d6"][Math.floor(r(11)*5)];
+ const heri=l.type==="heritage"||l.type==="beachfront";
+ let hs=`<ellipse cx="${f(hx+hw/2)}" cy="${hy+2}" rx="${f(hw*.62)}" ry="4" fill="#000" opacity=".25"/>`;
+ if(heri)hs+=`<rect x="${f(hx)}" y="${hy-hh}" width="${f(hw)}" height="${hh}" fill="${wall}"/><rect x="${f(hx-3)}" y="${hy-hh-5}" width="${f(hw+6)}" height="6" fill="#b5532f"/><path d="M${f(hx+hw/2-8)} ${hy} v-18 a8 8 0 0 1 16 0 v18Z" fill="#6a3a22"/><path d="M${f(hx+10)} ${hy-18} v-10 a6 6 0 0 1 12 0 v10Z M${f(hx+hw-22)} ${hy-18} v-10 a6 6 0 0 1 12 0 v10Z" fill="#ffd77a"/>`;
+ else hs+=`<rect x="${f(hx)}" y="${hy-hh}" width="${f(hw)}" height="${hh}" fill="${wall}"/><polygon points="${f(hx-7)},${hy-hh} ${f(hx+hw/2)},${f(hy-hh-hw*.36)} ${f(hx+hw+7)},${hy-hh}" fill="#8a3b22"/><rect x="${f(hx+hw*.7)}" y="${f(hy-hh-hw*.3)}" width="7" height="14" fill="#6a2f1a"/><rect x="${f(hx+hw/2-7)}" y="${hy-24}" width="14" height="24" fill="#5a3320"/><rect x="${f(hx+8)}" y="${hy-30}" width="14" height="13" fill="#ffd77a"/><rect x="${f(hx+hw-22)}" y="${hy-30}" width="14" height="13" fill="#ffd77a"/>`;
+ o+=hs+`<rect width="400" height="200" fill="url(#${id}s)"/>`;
+ return `<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" role="img" aria-label="Illustration of ${esc(l.name)}">${o}</svg>`}
 const FEST=["2026-10-20","2026-11-08","2026-11-09","2026-12-25","2026-12-31","2027-01-26","2027-03-04"];
 const st={g(k,d){try{const v=localStorage.getItem("ls2_"+k);return v?JSON.parse(v):d}catch(e){return d}},s(k,v){try{localStorage.setItem("ls2_"+k,JSON.stringify(v))}catch(e){}}};
 const mk=(r,i)=>{const d=C[r[0]],o=r[5]||{};return{id:"s"+i,city:r[0],name:r[1],host:r[2],base:r[3],type:r[4],h:o.h??d.h,f:o.f??d.f,n:o.n||d.n,a:o.a??d.a,al:o.al??d.al,rd:o.rd||d.rd}};
@@ -152,7 +205,7 @@ function searchGo(){city=document.getElementById("sc").value;render();document.g
 function home(){if(LIVE&&LOADING)return '<p class="mu">Loading stays...</p>';if(LERR)return '<div class="m e">'+esc(LERR)+'</div><button class="go" onclick="loadListings()">Try again</button>';
  const t=iso(new Date()),ty=["all","beachfront","mountain","heritage","nature","budget"];
  const items=L.filter(l=>(city==="all"||l.city===city)&&(typ==="all"||l.type===typ)).map(l=>{const w=warn(l),p=price(l,t);return `<div class="pc" tabindex="0" role="button" onclick="detail('${l.id}')" onkeydown="if(event.key==='Enter')detail('${l.id}')">
- <div class="ph" style="background:linear-gradient(135deg,${C[l.city]?C[l.city].c:"#666"},#1C0A02)">${esc(l.city)}</div>
+ <div class="ph">${scene(l)}<span>${esc(l.city)}</span></div>
  <div class="pb"><h3>${esc(l.name)}</h3><div class="mu">Hosted by ${esc(l.host)} · ${l.type}</div>
  ${w.slice(0,3).map(([k,m])=>`<span class="cp ${k}">${k==="r"?(l.h>30?"Hospital "+l.h+" km":"High altitude"):m.split(".")[0].slice(0,30)}</span>`).join("")||'<span class="cp g">Well connected</span>'}
  <div class="pr">₹${p.p.toLocaleString()} <span class="mu" style="font-weight:400">tonight · ${p.w}</span></div></div></div>`}).join("");
@@ -168,7 +221,7 @@ function detailRender(id){
  const l=L.find(x=>x.id===id),w=warn(l),red=w.some(x=>x[0]==="r"),t=iso(new Date());
  const rows=[["Nearest hospital",l.h+" km",l.h>30?"r":""],["Food delivery",l.f?"Available":"Not available",l.f?"":"a"],["Mobile network",l.n.join(", "),l.n.includes("Jio")?"":"a"],["Nearest ATM",l.a+" km",l.a>15?"a":""],["Altitude",l.al+" m",l.al>3000?"r":""],["Road access",l.rd,""]].map(([a,b,c],i)=>{const k=["h","f","n"][i],q=k?vf(l.id,k):"";return `<div class="row ${c}"><span><b>${a}</b>${q?`<span class="vb"${q[0]==="D"?' style="background:var(--redb);color:var(--red)"':""}>${q}</span>`:""}</span><span>${esc(b)}</span></div>`}).join("");
  const pr=Array.from({length:7},(_,i)=>{const d=add(t,i),p=price(l,d);return `<tr><td>${d}</td><td>₹${p.p}</td><td class="mu">${p.w}</td></tr>`}).join("");
- document.getElementById("md").innerHTML=`<button class="x" onclick="closeM()" aria-label="Close">×</button><h2 class="serif" style="margin-top:0">${esc(l.name)}</h2><div class="mu">${esc(l.city)} · hosted by ${esc(l.host)} · base ₹${l.base}/night</div>
+ document.getElementById("md").innerHTML=`<button class="x" onclick="closeM()" aria-label="Close">×</button><div class="ph hero-ph" style="margin-top:28px">${scene(l)}</div><h2 class="serif" style="margin-top:8px">${esc(l.name)}</h2><div class="mu">${esc(l.city)} · hosted by ${esc(l.host)} · base ₹${l.base}/night</div>
  <div class="cols"><div><div class="rc"><h4>Location Reality Card</h4>${rows}<div class="note">Details are host-reported until 3 guests confirm them. Confirm before travelling, especially for health needs.</div></div>
  <div class="pn" style="margin-top:14px"><b>Next 7 nights</b><table>${pr}</table></div>${hostP(l)}${revs(l)}${localVoices(l)}</div>
  <div><b>Book this stay</b><label>Check-in<input type="date" id="ci" min="${t}"></label><label>Check-out<input type="date" id="co" min="${t}"></label>
