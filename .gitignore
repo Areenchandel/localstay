@@ -1,0 +1,17 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+crash.log
+backend/infra/api.zip
+main.tf.txt
+__pycache__/
+*.pyc
+.env
+*.csv
+*.pem
+*.key
+accessKeys*
+credentials
+.DS_Store
+Thumbs.db

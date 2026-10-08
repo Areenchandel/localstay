@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LocalStay India: stays with the real picture</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--sf:#E8640A;--sfd:#C24F04;--sfl:#FEF3EC;--bg:#FDFAF6;--card:#fff;--tx:#1C1008;--mu:#6B5B4E;--ln:#EAE0D8;--red:#b3261e;--redb:#fde7e5;--amb:#9a5b00;--ambb:#fff3d9;--ok:#0B7B6B;--okb:#E6F5F3;--hero:linear-gradient(160deg,#1C0A02,#4a1f0a 60%,#b4500c);
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15100c;--card:#211912;--tx:#f5ece4;--mu:#b9a999;--ln:#3a2e24;--sfl:#3a2012;--redb:#3b1b1a;--red:#ff8a80;--ambb:#3a2e12;--amb:#f0b44c;--okb:#12332d;--ok:#6fcfa8}}
+:root[data-theme="dark"]{--bg:#15100c;--card:#211912;--tx:#f5ece4;--mu:#b9a999;--ln:#3a2e24;--sfl:#3a2012;--redb:#3b1b1a;--red:#ff8a80;--ambb:#3a2e12;--amb:#f0b44c;--okb:#12332d;--ok:#6fcfa8}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 "Plus Jakarta Sans",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}
+h1,h2,h3,.serif{font-family:"Playfair Display",Georgia,serif}
+nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 5%;background:var(--bg);border-bottom:1px solid var(--ln)}
+.logo{font-size:22px;font-weight:700;color:var(--sf);cursor:pointer}.logo b{color:var(--tx)}
+.nl{background:none;border:0;padding:8px 12px;border-radius:99px;cursor:pointer;color:var(--mu)}.nl:hover,.nl.on{background:var(--sfl);color:var(--sf)}
+.hero{background:var(--hero);color:#fff;padding:64px 5% 56px}
+.hero h1{font-size:clamp(34px,6vw,60px);line-height:1.08;margin:0 0 14px;max-width:760px}
+.hero p{color:rgba(255,255,255,.75);max-width:560px;margin:0 0 26px}
+.search{display:flex;gap:8px;flex-wrap:wrap;background:#fff;border-radius:18px;padding:8px;max-width:640px;color:#1C1008}
+.search select,.search input{flex:1;min-width:130px;border:0;padding:10px 12px;background:transparent;color:#1C1008;border-radius:10px}
+.go{background:var(--sf);color:#fff;border:0;border-radius:12px;padding:10px 22px;cursor:pointer;font-weight:600}.go:hover{background:var(--sfd)}
+main{padding:32px 5%}
+.tag{color:var(--sf);font-weight:600;font-size:14px}
+h2{font-size:28px;margin:4px 0 6px}.sub{color:var(--mu);margin:0 0 18px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.fc{border:1.5px solid var(--ln);background:none;border-radius:99px;padding:7px 16px;cursor:pointer;color:var(--mu)}.fc.on,.fc:hover{border-color:var(--sf);color:var(--sf)}.fc.on{background:var(--sf);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
+.pc{background:var(--card);border:1px solid var(--ln);border-radius:20px;overflow:hidden;cursor:pointer}.pc:focus-visible,button:focus-visible{outline:3px solid var(--sf);outline-offset:2px}
+.pc:hover{box-shadow:0 8px 28px rgba(107,66,38,.15)}
+.ph{height:130px;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:"Playfair Display",serif;font-size:20px}
+.pb{padding:16px}.pb h3{margin:0;font-size:18px}.mu{color:var(--mu);font-size:14px}
+.cp{display:inline-block;font-size:12px;border-radius:99px;padding:3px 10px;margin:8px 6px 0 0}
+.r{background:var(--redb);color:var(--red)}.a{background:var(--ambb);color:var(--amb)}.g{background:var(--okb);color:var(--ok)}
+.pr{font-weight:700;font-size:19px;margin-top:10px}
+.ov{display:none;position:fixed;inset:0;z-index:50;background:rgba(28,10,2,.6);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto}.ov.on{display:flex}
+.md{background:var(--card);border-radius:20px;width:100%;max-width:760px;padding:22px;position:relative}
+.x{position:absolute;right:14px;top:12px;border:1.5px solid var(--ln);background:none;border-radius:50%;width:34px;height:34px;cursor:pointer}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:14px}@media(max-width:700px){.cols{grid-template-columns:1fr}}
+.rc{border:2px solid var(--tx);border-radius:14px;overflow:hidden}.rc h4{margin:0;padding:10px 14px;background:var(--tx);color:var(--bg);font-size:15px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;border-top:1px solid var(--ln);font-size:14px}.row.r{background:var(--redb);color:inherit}.row.a{background:var(--ambb);color:inherit}.row span:last-child{text-align:right}
+.note{font-size:12.5px;color:var(--mu);padding:10px 14px;border-top:1px solid var(--ln)}
+label{display:block;font-size:13px;color:var(--mu);margin-top:10px}
+label input,label select{width:100%;margin-top:3px;border:1.5px solid var(--ln);border-radius:10px;padding:9px 12px;background:var(--card)}
+.wb{background:var(--redb);color:var(--red);border-radius:10px;padding:10px;margin-top:10px;font-size:14px}.wb ul{margin:4px 0 0;padding-left:18px}.wb label{display:flex;gap:8px;color:inherit}.wb input{width:auto;margin:4px 0 0}
+.btn{width:100%;margin-top:12px;background:var(--sf);color:#fff;border:0;border-radius:12px;padding:12px;font-weight:600;cursor:pointer}.btn:hover{background:var(--sfd)}
+.m{margin-top:10px;padding:10px;border-radius:10px;font-size:14px}.m.e{background:var(--redb);color:var(--red)}.m.s{background:var(--okb);color:var(--ok)}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:6px 2px;border-bottom:1px solid var(--ln)}
+.pn{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:16px;margin-bottom:12px}
+footer{padding:28px 5%;color:var(--mu);font-size:13px;border-top:1px solid var(--ln)}
+.rv{border-top:1px solid var(--ln);padding:10px 0;font-size:14px}.stars{color:#F5A623}.vb{font-size:11px;border-radius:99px;padding:1px 8px;margin-left:6px;background:var(--okb);color:var(--ok)}.tabs{display:flex;gap:6px;margin:10px 0}
+</style>
+</head>
+<body>
+<nav><div class="logo" onclick="show('home')">Local<b>Stay</b> India</div><div id="nv"></div></nav>
+<div class="hero" id="hero">
+ <h1>Know the place before you book it.</h1>
+ <p>Every stay comes with a Location Reality Card: how far the hospital is, whether food delivery works, which networks have signal, how high you will be.</p>
+ <div class="search"><select id="sc" aria-label="Destination"></select><button class="go" onclick="searchGo()">Find stays</button></div>
+</div>
+<main id="app"></main>
+<div class="ov" id="ov"><div class="md" id="md"></div></div>
+<footer>Sample data for demo. Distances and amenities are illustrative and must be verified before real use. Prices follow a rule-based formula (season, weekend, festival, demand).</footer>
+<script>
+// ===== CONNECT: paste your terraform outputs here. Leave empty to run in demo mode. =====
+const CFG={apiBase:"https://s41y3in6tl.execute-api.ap-south-1.amazonaws.com",region:"ap-south-1",clientId:"6nb6pe1fp1e06rln3f94topabd"}; // apiBase = api_url (no trailing slash), clientId = client_id
+const LIVE=!!(CFG.apiBase&&CFG.clientId);
+const C={ // per-destination defaults: hospital km, food delivery, networks, ATM km, altitude m, road note, season multipliers Jan..Dec, colour
+ Goa:{h:4,f:1,n:["Jio","Airtel","Vi","BSNL"],a:1,al:10,rd:"Open all year",s:[1.6,1.5,1.2,.9,.7,.7,.7,.8,1,1.3,1.6,1.8],c:"#0b7b8b"},
+ Manali:{h:3,f:1,n:["Jio","Airtel","BSNL"],a:2,al:2050,rd:"Rohtang side closed Nov to May",s:[1.3,1.2,1,1.1,1.1,1.1,.8,.8,.9,1,1.4,1.5],c:"#3d6b5a"},
+ Rishikesh:{h:5,f:1,n:["Jio","Airtel","Vi"],a:1,al:350,rd:"Open all year",s:[1,1.1,1.3,1.3,1.1,.8,.8,1.2,1.3,1.2,1,1],c:"#2a6fa0"},
+ Jaipur:{h:3,f:1,n:["Jio","Airtel","Vi","BSNL"],a:.5,al:430,rd:"Open all year",s:[1.3,1.3,1.1,.8,.7,.7,.8,.9,1,1.3,1.5,1.5],c:"#c2185b"},
+ Pondicherry:{h:3,f:1,n:["Jio","Airtel","Vi","BSNL"],a:.8,al:3,rd:"Open all year",s:[1.3,1.3,1.1,.9,.8,.8,.8,.9,1,1,1.2,1.5],c:"#7b5ea7"},
+ Coorg:{h:12,f:0,n:["Airtel","BSNL"],a:6,al:1150,rd:"Landslide risk in monsoon",s:[1.2,1.2,1.2,1.3,1.1,.8,.8,.9,1.1,1.3,1.2,1.5],c:"#4a7a2a"},
+ Munnar:{h:9,f:1,n:["Jio","Airtel","BSNL"],a:3,al:1600,rd:"Landslide risk in monsoon",s:[1.2,1.2,1.2,1.3,1.1,.8,.8,.9,1.1,1.3,1.2,1.5],c:"#2f8f5b"},
+ Varanasi:{h:2,f:1,n:["Jio","Airtel","Vi","BSNL"],a:.3,al:80,rd:"Narrow lanes, no car access",s:[1.1,1.2,1,.8,.7,.7,.8,.9,1.2,1.4,1.4,1.2],c:"#a0522d"},
+ Himachal:{h:45,f:0,n:["Airtel","BSNL"],a:20,al:3800,rd:"Passes close in winter",s:[.7,.7,.8,1,1.4,1.6,1.7,1.6,1.3,.8,.7,.7],c:"#5b6b8c"}};
+const SEED=[["Goa","Azure Bliss Villa","Priya D.",8500,"beachfront"],["Goa","Panjim Studio","Carlos F.",3200,"budget"],
+["Manali","Himalayan Hearth Cottage","Ram Singh",4200,"mountain",{h:18,f:0}],["Manali","Old Manali Treehouse","Sunita S.",3800,"nature"],
+["Rishikesh","Ganga View Home","Annapurna D.",3500,"heritage"],["Rishikesh","Forest Retreat","Swati J.",5200,"nature"],
+["Jaipur","Haveli Royal Chambers","Farooq M.",7500,"heritage"],["Jaipur","Sanganer Artist House","Gopal K.",2600,"budget"],
+["Pondicherry","French Quarter Maison","Anita K.",6500,"heritage"],["Pondicherry","Auroville Eco Stay","Lakshmi S.",3800,"nature"],
+["Coorg","Coffee Blossom Estate","Suresh P.",7800,"nature"],["Coorg","Misty Hills Cottage","Kavitha N.",5200,"mountain"],
+["Munnar","Tea Garden Bungalow","George T.",6400,"nature"],["Munnar","Kerala Family Homestay","Lissy M.",3800,"budget"],
+["Varanasi","Ghats Heritage Mansion","Ramesh S.",5200,"heritage"],["Varanasi","Silk Weaver's Home","Irfan A.",2800,"heritage"],
+["Himachal","Spiti Mud House","Dorje N.",3200,"mountain"],["Himachal","Kasol Pine Nest","Ratan T.",2800,"nature",{h:30,al:1640,f:0,n:["Jio","Airtel","BSNL"]}]];
+const FEST=["2026-10-20","2026-11-08","2026-11-09","2026-12-25","2026-12-31","2027-01-26","2027-03-04"];
+const st={g(k,d){try{const v=localStorage.getItem("ls2_"+k);return v?JSON.parse(v):d}catch(e){return d}},s(k,v){try{localStorage.setItem("ls2_"+k,JSON.stringify(v))}catch(e){}}};
+const mk=(r,i)=>{const d=C[r[0]],o=r[5]||{};return{id:"s"+i,city:r[0],name:r[1],host:r[2],base:r[3],type:r[4],h:o.h??d.h,f:o.f??d.f,n:o.n||d.n,a:o.a??d.a,al:o.al??d.al,rd:o.rd||d.rd}};
+let L=st.g("L",null)||SEED.map(mk),B=st.g("B",[]),U=st.g("U",null),UD=st.g("UD",{}),R=st.g("R",[]),authAfter=null,pmode="u",city="all",typ="all",view="home";
+const save=()=>{st.s("L",L);st.s("B",B);st.s("UD",UD);st.s("R",R)};
+const uname=()=>U&&UD[U]?UD[U].name:"",live=b=>b.st!=="HOLD"||b.exp>Date.now();
+const iso=d=>d.toISOString().slice(0,10),add=(s,n)=>{const d=new Date(s+"T00:00:00Z");d.setUTCDate(d.getUTCDate()+n);return iso(d)};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+let TOK=null,SUB=null,LOADING=false,LERR="";
+const b64=x=>JSON.parse(decodeURIComponent(escape(atob(x.replace(/-/g,"+").replace(/_/g,"/")))));
+function setTok(t){const c=b64(t.split(".")[1]);TOK=t;SUB=c.sub;U=c.email||U;UD[U]={name:c.name||c.email};st.s("tok",t);st.s("U",U);save()}
+function clearTok(){TOK=null;SUB=null;st.s("tok",null)}
+async function api(path,o={}){const h={"Content-Type":"application/json"};if(o.auth)h.Authorization=TOK;let r;
+ try{r=await fetch(CFG.apiBase+path,{method:o.m||"GET",headers:h,body:o.b?JSON.stringify(o.b):undefined})}catch(e){throw new Error("Cannot reach the server. Check the API URL and your internet.")}
+ const d=await r.json().catch(()=>({}));
+ if(r.status===401){clearTok();U=null;st.s("U",null);render();throw new Error("Session expired. Please log in again.")}
+ if(!r.ok)throw new Error(d.error||d.message||"Request failed ("+r.status+")");return d}
+async function cog(t,b){let r;
+ try{r=await fetch("https://cognito-idp."+CFG.region+".amazonaws.com/",{method:"POST",headers:{"Content-Type":"application/x-amz-json-1.1","X-Amz-Target":"AWSCognitoIdentityProviderService."+t},body:JSON.stringify(b)})}catch(e){throw new Error("Cannot reach Cognito.")}
+ const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Login failed");return d}
+const adapt=x=>({id:x.id,city:x.city,name:x.title,host:x.host,hid:x.host_id,base:x.base,type:x.type,h:x.hospital_km,f:x.food_delivery,n:x.networks||[],a:x.atm_km,al:x.altitude_m,rd:x.road_note||"",tp:x.tonight_price,bio:x.host_bio,lang:x.host_languages,since:x.host_since});
+async function loadListings(){LOADING=true;LERR="";render();try{L=(await api("/listings")).listings.map(adapt)}catch(e){LERR=e.message}LOADING=false;render()}
+async function loadBookings(){try{B=(await api("/bookings/me",{auth:1})).bookings.map(x=>({id:x.id,l:x.listing_id,t:x.title,g:U,ci:x.check_in,co:x.check_out,ns:x.nights,tot:x.total,st:x.status,exp:(x.hold_until||0)*1000}));render()}catch(e){document.getElementById("app").innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
+if(LIVE){L=[];B=[];R=[];try{const t=st.g("tok",null);if(t&&b64(t.split(".")[1]).exp*1000>Date.now())setTok(t);else{U=null;st.s("U",null)}}catch(e){U=null}}
+const price=(l,d)=>LIVE?{p:(l.p7&&l.p7[d])||l.tp||l.base,w:"dynamic rate"}:priceLocal(l,d);
+function priceLocal(l,date){const m=new Date(date+"T00:00:00Z"),sn=(C[l.city]||{s:Array(12).fill(1)}).s[m.getUTCMonth()],wk=[5,6].includes(m.getUTCDay())?1.15:1,fs=FEST.includes(date)?1.25:1,bk=B.filter(b=>b.l===l.id).length,dm=1+Math.min(bk,10)*.03;
+ const x=Math.max(.7,Math.min(2,sn*wk*fs*dm)),w=[];if(sn>1.15)w.push("peak season");if(sn<.9)w.push("off season");if(wk>1)w.push("weekend");if(fs>1)w.push("festival");if(dm>1)w.push("high demand");
+ return{p:Math.round(l.base*x/10)*10,w:w.join(", ")||"standard rate"}}
+function warn(l){const w=[];if(l.h>30)w.push(["r","Nearest hospital is "+l.h+" km away. If you have a serious health condition, think twice before booking."]);
+ if(l.al>3000)w.push(["r","Altitude "+l.al+" m: risk of altitude sickness. Plan a rest day."]);
+ if(!l.f)w.push(["a","No Swiggy/Zomato delivery here. Plan your meals."]);
+ if(!l.n.includes("Jio"))w.push(["a","No Jio network. Works: "+l.n.join(", ")+"."]);
+ if(l.a>15)w.push(["a","Nearest ATM is "+l.a+" km away. Carry cash."]);return w}
+function show(v){view=v;if(LIVE&&v==="mine"&&U)loadBookings();if(LIVE&&v==="local")loadLV().then(render);document.getElementById("hero").style.display=v==="home"?"":"none";render();scrollTo(0,0)}
+function openM(h){document.getElementById("md").innerHTML='<button class="x" onclick="closeM()" aria-label="Close">×</button>'+h;document.getElementById("ov").classList.add("on")}
+async function hs(p,s){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){return null}}
+function login(mode,after){authAfter=after||null;mode=mode||"in";
+ openM(`<h2 class="serif" style="margin-top:0">${mode==="in"?"Log in":"Create your account"}</h2><div class="tabs"><button class="fc ${mode==="in"?"on":""}" onclick="login('in')">Log in</button><button class="fc ${mode==="up"?"on":""}" onclick="login('up')">Sign up</button></div>${mode==="up"?'<label>Full name<input id="an"></label>':""}<label>Email<input type="email" id="ae"></label><label>Password (min 8 characters)<input type="password" id="ap"></label><button class="btn" onclick="auth('${mode}')">${mode==="in"?"Log in":"Create account"}</button><div id="am"></div><p class="mu" style="font-size:12px">${LIVE?"Accounts are handled by Amazon Cognito.":"Demo: accounts live in this browser only. The live version uses Amazon Cognito."}</p>`)}
+async function auth(mode){if(!LIVE)return authDemo(mode);
+ const v=i=>(document.getElementById(i)||{value:""}).value.trim(),m=document.getElementById("am"),e=v("ae").toLowerCase(),p=document.getElementById("ap").value,er=t=>m.innerHTML=`<div class="m e">${t}</div>`;
+ if(!/^\S+@\S+\.\S+$/.test(e))return er("Enter a valid email.");if(p.length<8)return er("Password must be at least 8 characters.");
+ try{
+  if(mode==="up"){if(!v("an"))return er("Enter your name.");
+   await cog("SignUp",{ClientId:CFG.clientId,Username:e,Password:p,UserAttributes:[{Name:"email",Value:e},{Name:"name",Value:v("an")}]});
+   return openM(`<h2 class="serif" style="margin-top:0">Check your email</h2><p class="mu">We sent a verification code to ${esc(e)}.</p><label>Code<input id="cc" inputmode="numeric"></label><button class="btn" onclick="confirmUp('${esc(e)}')">Verify</button><div id="am"></div>`)}
+  const d=await cog("InitiateAuth",{AuthFlow:"USER_PASSWORD_AUTH",ClientId:CFG.clientId,AuthParameters:{USERNAME:e,PASSWORD:p}});
+  if(!d.AuthenticationResult)return er("This account needs extra steps that are not supported yet.");
+  setTok(d.AuthenticationResult.IdToken)}catch(x){return er(esc(x.message))}
+ closeM();render();if(authAfter){const fn=authAfter;authAfter=null;fn()}}
+async function confirmUp(e){const m=document.getElementById("am");try{await cog("ConfirmSignUp",{ClientId:CFG.clientId,Username:e,ConfirmationCode:document.getElementById("cc").value.trim()});login("in");setTimeout(()=>{document.getElementById("am").innerHTML='<div class="m s">Email verified. Log in now.</div>'},0)}catch(x){m.innerHTML=`<div class="m e">${esc(x.message)}</div>`}}
+async function authDemo(mode){const v=i=>(document.getElementById(i)||{value:""}).value.trim(),m=document.getElementById("am"),e=v("ae").toLowerCase(),p=document.getElementById("ap").value,er=t=>m.innerHTML=`<div class="m e">${t}</div>`;
+ if(!/^\S+@\S+\.\S+$/.test(e))return er("Enter a valid email.");if(p.length<8)return er("Password must be at least 8 characters.");
+ if(mode==="up"){if(!v("an"))return er("Enter your name.");if(UD[e])return er("An account with this email already exists. Log in instead.");const sl=Math.random().toString(36).slice(2),h=await hs(p,sl);if(!h)return er("Secure hashing is not available in this browser.");UD[e]={name:v("an"),s:sl,h}}
+ else{const a=UD[e];if(!a)return er("No account with this email. Sign up first.");if(await hs(p,a.s)!==a.h)return er("Wrong password.")}
+ U=e;st.s("U",U);save();closeM();render();if(authAfter){const fn=authAfter;authAfter=null;fn()}}
+function logout(){U=null;st.s("U",null);if(LIVE){clearTok();B=[]}render()}
+function render(){
+ document.getElementById("nv").innerHTML=[["home","Stays"],["mine","My bookings"],["host","Become a host"]].concat(LIVE?[["local","Verified Local"]]:[]).map(([k,t])=>`<button class="nl ${view===k?"on":""}" onclick="show('${k}')">${t}</button>`).join("")+(U?`<button class="nl" onclick="logout()">Log out (${esc(uname())})</button>`:`<button class="nl" onclick="login()">Log in</button>`);
+ const sc=document.getElementById("sc");if(!sc.options.length)sc.innerHTML='<option value="all">All destinations</option>'+Object.keys(C).map(c=>`<option>${c}</option>`).join("");
+ document.getElementById("app").innerHTML=({home:home,mine:mine,host:host,local:vLocal})[view]()}
+function searchGo(){city=document.getElementById("sc").value;render();document.getElementById("app").scrollIntoView({behavior:"smooth"})}
+function home(){if(LIVE&&LOADING)return '<p class="mu">Loading stays...</p>';if(LERR)return '<div class="m e">'+esc(LERR)+'</div><button class="go" onclick="loadListings()">Try again</button>';
+ const t=iso(new Date()),ty=["all","beachfront","mountain","heritage","nature","budget"];
+ const items=L.filter(l=>(city==="all"||l.city===city)&&(typ==="all"||l.type===typ)).map(l=>{const w=warn(l),p=price(l,t);return `<div class="pc" tabindex="0" role="button" onclick="detail('${l.id}')" onkeydown="if(event.key==='Enter')detail('${l.id}')">
+ <div class="ph" style="background:linear-gradient(135deg,${C[l.city]?C[l.city].c:"#666"},#1C0A02)">${esc(l.city)}</div>
+ <div class="pb"><h3>${esc(l.name)}</h3><div class="mu">Hosted by ${esc(l.host)} · ${l.type}</div>
+ ${w.slice(0,3).map(([k,m])=>`<span class="cp ${k}">${k==="r"?(l.h>30?"Hospital "+l.h+" km":"High altitude"):m.split(".")[0].slice(0,30)}</span>`).join("")||'<span class="cp g">Well connected</span>'}
+ <div class="pr">₹${p.p.toLocaleString()} <span class="mu" style="font-weight:400">tonight · ${p.w}</span></div></div></div>`}).join("");
+ return `<div class="tag">${city==="all"?"All destinations":esc(city)}</div><h2 class="serif">Stays with the real picture</h2><p class="sub">Tap a stay to see its Location Reality Card.</p>
+ <div class="chips">${["all",...Object.keys(C)].map(c=>`<button class="fc ${city===c?"on":""}" onclick="city='${c}';render()">${c==="all"?"All":c}</button>`).join("")}</div>
+ <div class="chips">${ty.map(c=>`<button class="fc ${typ===c?"on":""}" onclick="typ='${c}';render()">${c==="all"?"Any type":c}</button>`).join("")}</div>
+ <div class="grid">${items||'<p class="mu">No stays match. Try another filter.</p>'}</div>`}
+async function detail(id){if(LIVE){try{const d=await api("/listings/"+id),l=L.find(x=>x.id===id);if(!l)return;const a=adapt(d.listing);delete a.tp;Object.assign(l,a,{p7:d.next_7_prices});
+  R=R.filter(x=>x.l!==id).concat(d.reviews.map(x=>({l:id,g:x.guest,s:x.rating,name:x.name,t:x.text,d:x.date,v:{h:x.verify.hospital,f:x.verify.food,n:x.verify.network}})))}catch(e){return alert(e.message)}}
+ if(LIVE){const l2=L.find(x=>x.id===id);if(l2)await Promise.all([loadLR(l2.city),loadLV()])}
+ detailRender(id)}
+function detailRender(id){
+ const l=L.find(x=>x.id===id),w=warn(l),red=w.some(x=>x[0]==="r"),t=iso(new Date());
+ const rows=[["Nearest hospital",l.h+" km",l.h>30?"r":""],["Food delivery",l.f?"Available":"Not available",l.f?"":"a"],["Mobile network",l.n.join(", "),l.n.includes("Jio")?"":"a"],["Nearest ATM",l.a+" km",l.a>15?"a":""],["Altitude",l.al+" m",l.al>3000?"r":""],["Road access",l.rd,""]].map(([a,b,c],i)=>{const k=["h","f","n"][i],q=k?vf(l.id,k):"";return `<div class="row ${c}"><span><b>${a}</b>${q?`<span class="vb"${q[0]==="D"?' style="background:var(--redb);color:var(--red)"':""}>${q}</span>`:""}</span><span>${esc(b)}</span></div>`}).join("");
+ const pr=Array.from({length:7},(_,i)=>{const d=add(t,i),p=price(l,d);return `<tr><td>${d}</td><td>₹${p.p}</td><td class="mu">${p.w}</td></tr>`}).join("");
+ document.getElementById("md").innerHTML=`<button class="x" onclick="closeM()" aria-label="Close">×</button><h2 class="serif" style="margin-top:0">${esc(l.name)}</h2><div class="mu">${esc(l.city)} · hosted by ${esc(l.host)} · base ₹${l.base}/night</div>
+ <div class="cols"><div><div class="rc"><h4>Location Reality Card</h4>${rows}<div class="note">Details are host-reported until 3 guests confirm them. Confirm before travelling, especially for health needs.</div></div>
+ <div class="pn" style="margin-top:14px"><b>Next 7 nights</b><table>${pr}</table></div>${hostP(l)}${revs(l)}${localVoices(l)}</div>
+ <div><b>Book this stay</b><label>Check-in<input type="date" id="ci" min="${t}"></label><label>Check-out<input type="date" id="co" min="${t}"></label>
+ ${w.length?`<div class="wb"><b>Before you book</b><ul>${w.map(x=>`<li>${esc(x[1])}</li>`).join("")}</ul>${red?'<label><input type="checkbox" id="ak"> I have read these limits and still want to book.</label>':""}</div>`:""}
+ <button class="btn" onclick="book('${id}',${red})">Confirm booking</button><div id="bm"></div></div></div>`;
+ document.getElementById("ov").classList.add("on")}
+function closeM(){document.getElementById("ov").classList.remove("on")}
+document.getElementById("ov").addEventListener("click",e=>{if(e.target.id==="ov")closeM()});
+function book(id,red){
+ const m=document.getElementById("bm"),say=(c,t)=>m.innerHTML=`<div class="m ${c}">${t}</div>`;
+ if(!U){closeM();return login("in",()=>detail(id))}
+ const ci=document.getElementById("ci").value,co=document.getElementById("co").value;
+ if(!ci||!co||co<=ci)return say("e","Pick a check-out date after check-in.");
+ const ns=[];for(let d=ci;d<co;d=add(d,1))ns.push(d);
+ if(ns.length>30)return say("e","Maximum 30 nights per booking.");
+ if(red&&!document.getElementById("ak").checked)return say("e","Tick the box to confirm you have read the limits.");
+ const l=L.find(x=>x.id===id);
+ if(LIVE){say("s","Holding your dates...");api("/bookings",{m:"POST",auth:1,b:{listing_id:id,check_in:ci,check_out:co}}).then(d=>{B.push({id:d.booking_id,l:id,t:l.name,g:U,ci,co,ns,tot:d.total,st:"HOLD",exp:d.hold_expires_at*1000});payM(d.booking_id)}).catch(e=>say("e",esc(e.message)));return}
+ const taken=B.filter(b=>b.l===id&&live(b)).flatMap(b=>b.ns),clash=ns.filter(n=>taken.includes(n));
+ if(clash.length)return say("e","Already booked or held on: "+clash.join(", ")+". Choose other dates.");
+ const tot=ns.reduce((s,n)=>s+price(l,n).p,0),bid="LS-"+Math.random().toString(36).slice(2,8).toUpperCase();
+ B.push({id:bid,l:id,t:l.name,g:U,ci,co,ns,tot,st:"HOLD",exp:Date.now()+600000});save();payM(bid)}
+function payM(bid){const b=B.find(x=>x.id===bid);if(!b)return;const fee=Math.round(b.tot*.1),r=(a,c)=>`<div class="row" style="padding:4px 0;border:0"><span>${a}</span><span>${c}</span></div>`;
+ openM(`<h2 class="serif" style="margin-top:0">Pay to confirm</h2><div class="mu">${esc(b.t)} · ${b.ns.length} night(s). Dates are held for 10 minutes.</div><div class="pn" style="margin-top:12px">${r("Stay","₹"+b.tot.toLocaleString())}${r("Service fee (10%)","₹"+fee.toLocaleString())}${r("<b>Total</b>","<b>₹"+(b.tot+fee).toLocaleString()+"</b>")}</div>
+ <div class="tabs"><button class="fc on" id="tu" onclick="setPm('u')">UPI</button><button class="fc" id="tc" onclick="setPm('c')">Card</button></div><div id="pf"></div><button class="btn" id="pbtn" onclick="pay('${bid}')">Pay ₹${(b.tot+fee).toLocaleString()}</button><div id="pmsg"></div>
+ <p class="mu" style="font-size:12px">Demo payment: no money moves and no card data is stored. The live version uses Razorpay (test mode first), with the order created by a Lambda.</p>`);setPm("u")}
+function setPm(k){pmode=k;["u","c"].forEach(x=>document.getElementById("t"+x).classList.toggle("on",x===k));
+ document.getElementById("pf").innerHTML=k==="u"?'<label>UPI ID<input id="f1" placeholder="name@bank"></label>':'<label>Card number<input id="f1" inputmode="numeric" placeholder="16 digits"></label><label>Expiry (MM/YY)<input id="f2"></label>'}
+async function pay(bid){const b=B.find(x=>x.id===bid),m=document.getElementById("pmsg"),f=document.getElementById("f1").value.trim(),er=t=>m.innerHTML=`<div class="m e">${t}</div>`;
+ if(b.st==="HOLD"&&b.exp<Date.now())return er("Hold expired. Book again to pick dates.");
+ if(pmode==="u"&&!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(f))return er("Enter a valid UPI ID like name@bank.");
+ if(pmode==="c"){if(!/^\d{16}$/.test(f.replace(/\s/g,"")))return er("Card number must be 16 digits.");if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(document.getElementById("f2").value.trim()))return er("Expiry must look like 08/28.")}
+ document.getElementById("pbtn").disabled=true;m.innerHTML='<div class="m s">Processing payment...</div>';
+ await new Promise(r=>setTimeout(r,1200));
+ if(LIVE){try{await api("/bookings/"+b.l+"/"+b.id+"/confirm",{m:"POST",auth:1})}catch(x){document.getElementById("pbtn").disabled=false;return er(esc(x.message))}}
+ b.st="CONFIRMED";b.paid=pmode==="u"?"UPI":"Card";delete b.exp;if(!LIVE)save();
+ openM(`<h2 class="serif" style="margin-top:0">Booking confirmed</h2><p>Booking ID <b>${b.id}</b>. ${esc(b.t)}, ${b.ci} to ${b.co}.</p><p class="mu">The live version sends a confirmation email through SNS.</p><button class="btn" onclick="closeM();show('mine')">View my bookings</button>`)}
+function mine(){if(!U)return '<h2 class="serif">Log in to see your bookings</h2><button class="go" onclick="login()">Log in</button>';
+ const m=B.filter(b=>b.g===U&&live(b));return `<h2 class="serif">My bookings</h2>`+(m.map(b=>{const rv=R.find(r=>r.b===b.id);return `<div class="pn"><b>${esc(b.t)}</b> <span class="cp ${b.st==="HOLD"?"a":"g"}">${b.st==="HOLD"?"Awaiting payment":b.id}</span><div class="mu">${b.ci} to ${b.co} · ${b.ns.length} night(s) · ₹${b.tot.toLocaleString()}</div>${b.st==="HOLD"?`<button class="go" style="margin-top:8px" onclick="payM('${b.id}')">Pay now</button>`:rv?'<div class="mu" style="margin-top:6px">Reviewed. Thank you.</div>':`<button class="go" style="margin-top:8px" onclick="reviewM('${b.id}')">Write a review</button>`}</div>`}).join("")||'<p class="mu">No bookings yet.</p>')}
+function reviewM(bid){const b=B.find(x=>x.id===bid),l=L.find(x=>x.id===b.l),sel=(i,q)=>`<label>${q}<select id="${i}"><option value="u">Not sure</option><option value="y">Yes, correct</option><option value="n">No, it was different</option></select></label>`;
+ openM(`<h2 class="serif" style="margin-top:0">Review ${esc(l.name)}</h2><label>Rating<select id="rs">${[5,4,3,2,1].map(n=>`<option>${n}</option>`).join("")}</select></label><label>Your review<input id="rt" placeholder="What was the stay like?"></label><p class="mu" style="margin:14px 0 0"><b>Help the next guest.</b> Was the host's information right?</p>${sel("v1","Hospital was "+l.h+" km away")}${sel("v2","Food delivery: "+(l.f?"available":"not available"))}${sel("v3","Networks that worked: "+l.n.join(", "))}<button class="btn" onclick="saveRv('${bid}')">Submit review</button><div id="rm"></div><p class="mu" style="font-size:12px">Demo: the live version allows reviews only after check-out.</p>`)}
+async function saveRv(bid){const b=B.find(x=>x.id===bid),t=document.getElementById("rt").value.trim(),m=document.getElementById("rm");
+ if(t.length<10)return m.innerHTML='<div class="m e">Write at least 10 characters.</div>';
+ const rating=+document.getElementById("rs").value,v={h:document.getElementById("v1").value,f:document.getElementById("v2").value,n:document.getElementById("v3").value};
+ if(LIVE){try{await api("/reviews",{m:"POST",auth:1,b:{listing_id:b.l,booking_id:bid,rating,text:t,verify:{hospital:v.h,food:v.f,network:v.n}}})}catch(e){return m.innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
+ R.push({b:bid,l:b.l,g:LIVE?SUB:U,name:uname(),s:rating,t,v,d:iso(new Date())});if(!LIVE)save();closeM();render()}
+function vf(id,k){const r=R.filter(x=>x.l===id),y=r.filter(x=>x.v[k]==="y").length,n=r.filter(x=>x.v[k]==="n").length;return n>=2?"Disputed by "+n+" guests":y>=3?"Verified by "+y+" guests":""}
+function hostP(l){const h=LIVE?{bio:l.bio,lang:l.lang,since:l.since}:UD[l.hid],n=L.filter(x=>x.host===l.host).length;return `<div class="pn" style="margin-top:14px"><b>About the host</b><div class="mu">${esc(l.host)}${h&&h.since?" · hosting since "+esc(h.since):""}${h&&h.lang?" · speaks "+esc(h.lang):""}</div><p style="margin:8px 0 0;font-size:14px">${h&&h.bio?esc(h.bio):"This host has not written a profile yet."}</p><div class="mu" style="margin-top:6px;font-size:13px">${n} listing(s) on LocalStay</div></div>`}
+function revs(l){const r=R.filter(x=>x.l===l.id),av=r.length?(r.reduce((s,x)=>s+x.s,0)/r.length).toFixed(1):null;return `<div class="pn"><b>Guest reviews</b> ${av?`<span class="stars">★</span> ${av} (${r.length})`:""}${r.map(x=>`<div class="rv"><span class="stars">${"★".repeat(x.s)}</span> <b>${esc(x.name)}</b> <span class="mu">${x.d}</span><div>${esc(x.t)}</div></div>`).join("")||'<div class="mu">No reviews yet. Guests can review after their stay.</div>'}</div>`}
+function host(){if(!U)return '<h2 class="serif">Log in to add your stay</h2><button class="go" onclick="login()">Log in</button>';
+ return `<h2 class="serif">Add your stay</h2><p class="sub">Tell guests what the place is really like. Guests verify these details after their stay.</p><div class="pn" style="max-width:520px">
+ <label>About you (shown to guests)<input id="hb" value="${esc((UD[U]||{}).bio||"")}"></label><label>Languages you speak<input id="hl" value="${esc((UD[U]||{}).lang||"")}"></label><label>Hosting since (year)<input id="hy" value="${esc((UD[U]||{}).since||"")}"></label><label>Title<input id="h1"></label><label>Destination<select id="h2">${Object.keys(C).map(c=>`<option>${c}</option>`).join("")}</select></label>
+ <label>Base price per night (₹)<input type="number" id="h3" value="3000"></label><label>Nearest hospital (km)<input type="number" id="h4" value="10"></label>
+ <label>Food delivery available?<select id="h5"><option value="1">Yes</option><option value="0">No</option></select></label>
+ <label>Networks that work (comma separated)<input id="h6" value="Jio, Airtel"></label><label>Nearest ATM (km)<input type="number" id="h7" value="2"></label>
+ <label>Altitude (m)<input type="number" id="h8" value="100"></label><label>Road access note<input id="h9" value="Open all year"></label>
+ <button class="btn" onclick="addL()">Publish listing</button><div id="hm"></div></div>`}
+async function addL(){if(!LIVE)return addLDemo();const v=i=>document.getElementById(i).value.trim(),m=document.getElementById("hm");
+ if(!v("h1")){m.innerHTML='<div class="m e">Title is required.</div>';return}
+ try{await api("/listings",{m:"POST",auth:1,b:{title:v("h1"),city:v("h2"),base:+v("h3")||1000,hospital_km:+v("h4"),food_delivery:v("h5")==="1",networks:v("h6").split(",").map(x=>x.trim()).filter(Boolean),atm_km:+v("h7"),altitude_m:+v("h8"),road_note:v("h9"),bio:v("hb"),languages:v("hl"),since:v("hy")}});city="all";await loadListings();show("home")}
+ catch(e){m.innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
+function addLDemo(){const v=i=>document.getElementById(i).value.trim();
+ if(!v("h1")){document.getElementById("hm").innerHTML='<div class="m e">Title is required.</div>';return}
+ Object.assign(UD[U],{bio:v("hb"),lang:v("hl"),since:v("hy")});L.push({id:"s"+Date.now(),city:v("h2"),name:v("h1"),host:uname(),hid:U,base:+v("h3")||1000,type:"nature",h:+v("h4"),f:v("h5")==="1",n:v("h6").split(",").map(s=>s.trim()).filter(Boolean),a:+v("h7"),al:+v("h8"),rd:v("h9")});save();city="all";show("home")}
+
+// ================= VERIFIED LOCALS (people who live in a place review it) =================
+let LV={status:"NONE"},LR={};
+async function loadLV(){if(!LIVE||!U){LV={status:"NONE"};return}try{LV=await api("/local/me",{auth:1})}catch(e){LV={status:"NONE"}}}
+async function loadLR(city){try{LR[city.toLowerCase()]=(await api("/local/reviews?city="+encodeURIComponent(city))).reviews}catch(e){LR[city.toLowerCase()]=[]}}
+function vLocal(){
+ if(!U)return '<h2 class="serif">Become a Verified Local</h2><p class="sub">Log in first. Then tell us where you live.</p><button class="go" onclick="login()">Log in</button>';
+ const head='<h2 class="serif">Verified Local</h2><p class="sub">Travel sites show what guests think. You know what the place is really like: how safe it is at night, how locals treat visitors, where to eat, what language helps. Verified Locals share that on every stay in their city.</p>';
+ if(LV.status==="VERIFIED")return head+'<div class="pn" style="max-width:520px"><span class="vb">Verified Local</span> <b>'+esc(LV.city)+'</b><p class="mu">You have lived here '+esc(LV.years)+'+ years. Open any stay in '+esc(LV.city)+' and add your local review under "Local voices".</p></div>';
+ if(LV.status==="PENDING")return head+'<div class="pn" style="max-width:520px"><span class="cp a">Under review</span><p class="mu">Your application for <b>'+esc(LV.city)+'</b> is waiting. We will email you to check a local address proof. We do not keep the document.</p></div>';
+ return head+(LV.status==="REJECTED"?'<div class="m e" style="max-width:520px">Your last application was not approved. You can apply again with correct details.</div>':"")+
+ '<div class="pn" style="max-width:520px"><label>City you live in<select id="la1">'+Object.keys(C).map(c=>"<option>"+c+"</option>").join("")+'</select></label>'+
+ '<label>Years lived there<input type="number" id="la2" min="1" max="80" value="5"></label>'+
+ '<label>Anything we should know (optional)<input id="la3" placeholder="Born here, run a shop, teach at the school..."></label>'+
+ '<p class="mu" style="font-size:13px">How verification works: we email you and ask to see one local address proof (electricity bill, voter ID). We check it once and delete it. We only save "verified: yes". We never store Aadhaar or passport numbers.</p>'+
+ '<button class="btn" onclick="applyLocal()">Apply</button><div id="lam"></div></div>'}
+async function applyLocal(){const m=document.getElementById("lam"),v=i=>document.getElementById(i).value.trim();
+ try{await api("/local/apply",{m:"POST",auth:1,b:{city:v("la1"),years:+v("la2"),note:v("la3")}});await loadLV();render()}
+ catch(e){m.innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
+function localVoices(l){if(!LIVE)return "";
+ const k=l.city.toLowerCase(),r=LR[k]||[],can=LV.status==="VERIFIED"&&LV.city_key===k,sel=(i,t)=>'<label>'+t+'<select id="'+i+'">'+[5,4,3,2,1].map(n=>"<option>"+n+"</option>").join("")+'</select></label>';
+ return '<div class="pn"><b>Local voices</b> <span class="mu">from verified residents of '+esc(l.city)+'</span>'+
+ (r.map(x=>'<div class="rv"><span class="vb" style="margin:0 6px 0 0">Verified local · '+esc(x.years)+'+ yrs</span><b>'+esc(x.name)+'</b><div class="mu">Safety '+esc(x.safety)+'/5 · Friendliness of locals '+esc(x.locals)+'/5</div><div>'+esc(x.tips)+'</div>'+(x.food?'<div class="mu">Food: '+esc(x.food)+'</div>':"")+(x.language?'<div class="mu">Language: '+esc(x.language)+'</div>':"")+'</div>').join("")||'<div class="mu">No local has reviewed this area yet.</div>')+
+ (can?'<div class="rv"><b>Add your local review</b>'+sel("lv1","How safe is the area? (5 = very safe)")+sel("lv2","How welcoming are locals to visitors? (5 = very)")+'<label>Where to eat / food tips<input id="lv3"></label><label>Languages that help<input id="lv4" placeholder="Hindi, Pahari"></label><label>What should a visitor know?<input id="lv5" placeholder="Honest advice about the area"></label><button class="btn" onclick="saveLocal(\''+l.id+'\')">Post local review</button><div id="lvm"></div></div>'
+  :'<div class="mu" style="margin-top:8px">Live in '+esc(l.city)+'? <a href="#" onclick="closeM();show(\'local\');return false" style="color:var(--sf)">Become a Verified Local</a></div>')+'</div>'}
+async function saveLocal(lid){const m=document.getElementById("lvm"),g=i=>document.getElementById(i).value.trim();
+ try{await api("/local/reviews",{m:"POST",auth:1,b:{safety:+g("lv1"),locals:+g("lv2"),food:g("lv3"),language:g("lv4"),tips:g("lv5")}});await detail(lid)}
+ catch(e){m.innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
+render();if(LIVE)loadListings();
+document.querySelector("footer").insertAdjacentHTML("beforeend"," Mode: "+(LIVE?"connected to the API.":"demo, not connected to a server."));
+</script>
+</body>
+</html>
