@@ -1,8 +1,8 @@
-# LocalStay India
+﻿# LocalStay India
 
 **Know the place before you book it.** A serverless homestay booking platform on AWS where every stay shows what the place is *really* like, and people who live there can review it.
 
-Live demo: _add your CloudFront URL here_ (`terraform output site_url`)
+Live demo: https://d9ci3vlczulbo.cloudfront.net
 
 ## The problem
 
