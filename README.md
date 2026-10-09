@@ -147,3 +147,8 @@ Razorpay (test mode) with webhook, OpenStreetMap distance import, "Ask a Local" 
 ## Email notifications (SES)
 
 When a booking is confirmed (browser verify or webhook, whichever wins), the guest gets an email from SES. It is best-effort: a mail failure is logged and never undoes a paid booking, and only the call that actually confirmed the booking sends the mail, so replays do not send duplicates. New AWS accounts start in the SES sandbox, which only delivers to verified addresses; production access is a form request to AWS.
+
+## Load test and state
+
+- `backend/scripts/loadtest.py` runs against the live API: N guests book the same two nights at the same instant (exactly one must win, the rest get 409), then a read load on `/listings` reports p50/p95 latency. It creates temporary Cognito users and a temporary listing and removes them afterwards. Its logic is also covered by an in-process test.
+- Terraform state is in a versioned, encrypted S3 bucket with a DynamoDB lock (`backend.tf`), created once by `backend/scripts/bootstrap_state.ps1`.
