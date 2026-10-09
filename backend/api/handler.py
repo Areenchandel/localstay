@@ -1,5 +1,5 @@
 """LocalStay API: one Lambda behind API Gateway HTTP API, one DynamoDB table (single-table design)."""
-import json, os, re, time, uuid, datetime as dt
+import json, os, re, time, uuid, hmac, hashlib, base64, urllib.request, urllib.error, datetime as dt
 from decimal import Decimal
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
@@ -21,6 +21,8 @@ S3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION") or os.environ.g
 PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
 MAX_PHOTOS = 6
 MAX_PHOTO_BYTES = 5_000_000
+RZP_PREFIX = os.environ.get("RAZORPAY_PARAM_PREFIX", "")  # SSM path holding key_id, key_secret, webhook_secret. Empty = Razorpay off (demo payments)
+_RZP = {"conf": {}, "at": 0}
 
 
 class Err(Exception):
@@ -201,25 +203,169 @@ def create_booking(sub, name, b):
     return resp(201, {"booking_id": bid, "status": "HOLD", "total": total, "hold_expires_at": hold})
 
 
-def confirm_booking(sub, lid, bid):
-    if not DEMO_PAYMENTS:
-        raise Err(403, "Bookings are confirmed by the payment webhook only.")  # Razorpay webhook replaces this in production
-    b = T.get_item(Key={"PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}"}).get("Item")
-    if not b or b["guest"] != sub:
-        raise Err(404, "Booking not found.")
+# ---------- payments: Razorpay (test or live keys), confirmed by a signed webhook ----------
+def rzp_conf():
+    """Razorpay keys come from SSM Parameter Store (encrypted), never from code or Terraform state. Cached per container."""
+    if _RZP["conf"]:
+        return _RZP["conf"]
+    if not RZP_PREFIX or time.time() - _RZP["at"] < 60:
+        return {}
+    _RZP["at"] = time.time()
+    try:
+        r = boto3.client("ssm").get_parameters(Names=[f"{RZP_PREFIX}/{n}" for n in ("key_id", "key_secret", "webhook_secret")], WithDecryption=True)
+        conf = {p["Name"].rsplit("/", 1)[1]: p["Value"] for p in r["Parameters"]}
+    except Exception as e:
+        print("razorpay config error", repr(e))
+        return {}
+    _RZP["conf"] = conf if len(conf) == 3 else {}
+    return _RZP["conf"]
+
+
+def rzp(method, path, body=None):
+    c = rzp_conf()
+    auth = base64.b64encode(f"{c['key_id']}:{c['key_secret']}".encode()).decode()
+    req = urllib.request.Request("https://api.razorpay.com/v1" + path, method=method, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json", "Authorization": "Basic " + auth})
+    try:
+        with urllib.request.urlopen(req, timeout=6) as r:
+            return json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        print("razorpay error", e.code, e.read()[:300])
+        raise Err(502, "Payment provider error. Please try again.")
+    except Exception as e:
+        print("razorpay unreachable", repr(e))
+        raise Err(502, "Payment provider is unreachable. Please try again.")
+
+
+def fee_for(total):
+    return int(total * 0.10 + 0.5)  # 10% service fee, rounded half up (the page shows the same number)
+
+
+def hmac_hex(secret, msg):
+    return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
+
+
+def get_booking(lid, bid):
+    return T.get_item(Key={"PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}"}).get("Item")
+
+
+def config():
+    c = rzp_conf()
+    return resp(200, {"payments": "razorpay" if c else "demo", "key_id": c.get("key_id")})
+
+
+def finalize_booking(lid, bid, payment_id="demo"):
+    """Turn a held booking into a confirmed one: keep the nights, drop the expiry. Safe to call twice."""
+    b = get_booking(lid, bid)
     if b["status"] == "CONFIRMED":
-        return resp(200, {"status": "CONFIRMED"})
+        return
     ops = [{"Update": {"TableName": TABLE, "Key": ser({"PK": f"LISTING#{lid}", "SK": f"NIGHT#{n}"}),
                        "UpdateExpression": "REMOVE hold_until, #t", "ConditionExpression": "booking_id = :b",
                        "ExpressionAttributeNames": {"#t": "ttl"}, "ExpressionAttributeValues": ser({":b": bid})}} for n in b["nights"]]
     ops.append({"Update": {"TableName": TABLE, "Key": ser({"PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}"}),
-                           "UpdateExpression": "SET #s = :c REMOVE hold_until", "ConditionExpression": "#s = :h",
-                           "ExpressionAttributeNames": {"#s": "status"}, "ExpressionAttributeValues": ser({":c": "CONFIRMED", ":h": "HOLD"})}})
+                           "UpdateExpression": "SET #s = :c, payment_id = :p REMOVE hold_until", "ConditionExpression": "#s = :h",
+                           "ExpressionAttributeNames": {"#s": "status"}, "ExpressionAttributeValues": ser({":c": "CONFIRMED", ":h": "HOLD", ":p": payment_id})}})
     try:
         DB.transact_write_items(TransactItems=ops)
     except DB.exceptions.TransactionCanceledException:
+        if get_booking(lid, bid)["status"] == "CONFIRMED":  # someone else (webhook or browser) got there first
+            return
         raise Err(409, "Hold expired and the dates were taken. Please book again.")
+
+
+def refund(lid, bid, pid):
+    """Money arrived but the dates are gone: give it back and record what happened."""
+    try:
+        rzp("POST", f"/payments/{pid}/refund", {})
+        status = "REFUNDED"
+    except Err:
+        print("REFUND FAILED, handle by hand:", lid, bid, pid)
+        status = "REFUND_FAILED"
+    T.update_item(Key={"PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}"}, UpdateExpression="SET #s = :s, payment_id = :p REMOVE hold_until",
+                  ExpressionAttributeNames={"#s": "status"}, ExpressionAttributeValues={":s": status, ":p": pid})
+
+
+def settle(lid, bid, pid):
+    if get_booking(lid, bid)["status"] in ("REFUNDED", "REFUND_FAILED"):  # a retried webhook must never refund twice
+        raise Err(409, "This payment was already refunded.")
+    try:
+        finalize_booking(lid, bid, pid)
+    except Err:
+        refund(lid, bid, pid)
+        raise
+
+
+def confirm_booking(sub, lid, bid):
+    if not DEMO_PAYMENTS or rzp_conf():
+        raise Err(403, "Bookings are confirmed by the payment provider only.")
+    b = get_booking(lid, bid)
+    if not b or b["guest"] != sub:
+        raise Err(404, "Booking not found.")
+    finalize_booking(lid, bid)
     return resp(200, {"status": "CONFIRMED"})
+
+
+def pay_order(sub, lid, bid):
+    c = rzp_conf()
+    if not c:
+        raise Err(501, "Online payments are not enabled.")
+    b = get_booking(lid, bid)
+    if not b or b["guest"] != sub:
+        raise Err(404, "Booking not found.")
+    if b["status"] == "CONFIRMED":
+        raise Err(409, "This booking is already paid.")
+    if b["status"] != "HOLD" or int(b.get("hold_until", 0)) <= int(time.time()):
+        raise Err(409, "Hold expired. Please book again.")
+    if b.get("order_id"):
+        return resp(200, {"key_id": c["key_id"], "order_id": b["order_id"], "amount": int(b["amount_paise"]), "currency": "INR"})
+    total = int(b["total"])
+    amount = (total + fee_for(total)) * 100  # computed here, so the browser cannot change what is charged
+    order = rzp("POST", "/orders", {"amount": amount, "currency": "INR", "receipt": bid, "notes": {"listing_id": lid, "booking_id": bid}})
+    oid = order["id"]
+    try:
+        T.update_item(Key={"PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}"}, UpdateExpression="SET order_id = :o, amount_paise = :a",
+                      ConditionExpression="attribute_not_exists(order_id)", ExpressionAttributeValues={":o": oid, ":a": amount})
+    except T.meta.client.exceptions.ConditionalCheckFailedException:  # double click: keep the first order
+        return pay_order(sub, lid, bid)
+    T.put_item(Item={"PK": f"RZPORDER#{oid}", "SK": "META", "listing_id": lid, "booking_id": bid, "amount_paise": amount})
+    return resp(200, {"key_id": c["key_id"], "order_id": oid, "amount": amount, "currency": "INR"})
+
+
+def verify_payment(sub, lid, bid, b):
+    c = rzp_conf()
+    if not c:
+        raise Err(501, "Online payments are not enabled.")
+    bk = get_booking(lid, bid)
+    if not bk or bk["guest"] != sub:
+        raise Err(404, "Booking not found.")
+    oid = bk.get("order_id")
+    pid, sig = str(b.get("razorpay_payment_id", "")), str(b.get("razorpay_signature", ""))
+    if not oid or not hmac.compare_digest(hmac_hex(c["key_secret"], f"{oid}|{pid}"), sig):  # the order id is OURS, not the one the browser sends
+        raise Err(400, "Payment could not be verified.")
+    settle(lid, bid, pid)
+    return resp(200, {"status": "CONFIRMED"})
+
+
+def razorpay_webhook(raw, headers):
+    """The authoritative confirmation: works even if the guest closed the tab right after paying."""
+    c = rzp_conf()
+    if not c:
+        raise Err(501, "Online payments are not enabled.")
+    if not hmac.compare_digest(hmac_hex(c["webhook_secret"], raw), headers.get("x-razorpay-signature", "")):
+        raise Err(400, "Bad signature.")
+    ev = json.loads(raw)
+    if ev.get("event") not in ("payment.captured", "order.paid"):
+        return resp(200, {"ignored": True})
+    pay = ev["payload"]["payment"]["entity"]
+    m = T.get_item(Key={"PK": f"RZPORDER#{pay['order_id']}", "SK": "META"}).get("Item")
+    if not m or int(pay["amount"]) != int(m["amount_paise"]):  # unknown order, or paid amount differs from what we asked for
+        print("webhook ignored", pay.get("order_id"), pay.get("amount"))
+        return resp(200, {"ignored": True})
+    try:
+        settle(m["listing_id"], m["booking_id"], pay["id"])
+    except Err as e:
+        return resp(200, {"refunded": True, "reason": e.msg})  # 200 so Razorpay stops retrying; the refund is already done
+    return resp(200, {"ok": True})
 
 
 def my_bookings(sub):
@@ -315,6 +461,10 @@ ROUTES = {
     "POST /bookings": lambda c: create_booking(c["sub"], c["name"], c["body"]),
     "GET /bookings/me": lambda c: my_bookings(c["sub"]),
     "POST /bookings/{lid}/{bid}/confirm": lambda c: confirm_booking(c["sub"], c["path"]["lid"], c["path"]["bid"]),
+    "POST /bookings/{lid}/{bid}/pay-order": lambda c: pay_order(c["sub"], c["path"]["lid"], c["path"]["bid"]),
+    "POST /bookings/{lid}/{bid}/verify": lambda c: verify_payment(c["sub"], c["path"]["lid"], c["path"]["bid"], c["body"]),
+    "GET /config": lambda c: config(),
+    "POST /razorpay/webhook": lambda c: razorpay_webhook(c["raw"], c["headers"]),
     "POST /reviews": lambda c: create_review(c["sub"], c["name"], c["body"]),
     "POST /local/apply": lambda c: local_apply(c["sub"], c["name"], c["email"], c["body"]),
     "GET /local/me": lambda c: local_me(c["sub"]),
@@ -323,14 +473,18 @@ ROUTES = {
 }
 
 
-PUBLIC = {"GET /listings", "GET /listings/{id}", "GET /local/reviews"}
+PUBLIC = {"GET /listings", "GET /listings/{id}", "GET /local/reviews", "GET /config", "POST /razorpay/webhook"}
 
 
 def handler(event, context):
     try:
         claims = (event["requestContext"].get("authorizer") or {}).get("jwt", {}).get("claims", {})
+        raw = event.get("body") or ""
+        if event.get("isBase64Encoded"):
+            raw = base64.b64decode(raw).decode()
         ctx = {"qs": event.get("queryStringParameters") or {}, "path": event.get("pathParameters") or {},
-               "body": json.loads(event.get("body") or "{}"), "sub": claims.get("sub"),
+               "raw": raw, "headers": {k.lower(): v for k, v in (event.get("headers") or {}).items()},
+               "body": json.loads(raw or "{}"), "sub": claims.get("sub"),
                "name": claims.get("name") or claims.get("email", "Guest"), "email": claims.get("email", "")}
         if not ctx["sub"] and event["routeKey"] not in PUBLIC:
             raise Err(401, "Please log in.")  # second lock behind the API Gateway authorizer

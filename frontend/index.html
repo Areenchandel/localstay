@@ -68,6 +68,8 @@ footer{padding:28px 5%;color:var(--mu);font-size:13px;border-top:1px solid var(-
 // ===== CONNECT: paste your terraform outputs here. Leave empty to run in demo mode. =====
 const CFG={apiBase:"https://s41y3in6tl.execute-api.ap-south-1.amazonaws.com",region:"ap-south-1",clientId:"6nb6pe1fp1e06rln3f94topabd"}; // apiBase = api_url (no trailing slash), clientId = client_id
 const LIVE=!!(CFG.apiBase&&CFG.clientId);
+let PAY={mode:"demo",key:null};
+if(LIVE)fetch(CFG.apiBase+"/config").then(r=>r.json()).then(c=>{if(c.payments==="razorpay"){PAY={mode:"razorpay",key:c.key_id}}}).catch(()=>{});
 const C={ // per-destination defaults: hospital km, food delivery, networks, ATM km, altitude m, road note, season multipliers Jan..Dec, colour
  Goa:{h:4,f:1,n:["Jio","Airtel","Vi","BSNL"],a:1,al:10,rd:"Open all year",s:[1.6,1.5,1.2,.9,.7,.7,.7,.8,1,1.3,1.6,1.8],c:"#0b7b8b"},
  Manali:{h:3,f:1,n:["Jio","Airtel","BSNL"],a:2,al:2050,rd:"Rohtang side closed Nov to May",s:[1.3,1.2,1,1.1,1.1,1.1,.8,.8,.9,1,1.4,1.5],c:"#3d6b5a"},
@@ -246,11 +248,27 @@ function book(id,red){
  B.push({id:bid,l:id,t:l.name,g:U,ci,co,ns,tot,st:"HOLD",exp:Date.now()+600000});save();payM(bid)}
 function payM(bid){const b=B.find(x=>x.id===bid);if(!b)return;const fee=Math.round(b.tot*.1),r=(a,c)=>`<div class="row" style="padding:4px 0;border:0"><span>${a}</span><span>${c}</span></div>`;
  openM(`<h2 class="serif" style="margin-top:0">Pay to confirm</h2><div class="mu">${esc(b.t)} · ${b.ns.length} night(s). Dates are held for 10 minutes.</div><div class="pn" style="margin-top:12px">${r("Stay","₹"+b.tot.toLocaleString())}${r("Service fee (10%)","₹"+fee.toLocaleString())}${r("<b>Total</b>","<b>₹"+(b.tot+fee).toLocaleString()+"</b>")}</div>
- <div class="tabs"><button class="fc on" id="tu" onclick="setPm('u')">UPI</button><button class="fc" id="tc" onclick="setPm('c')">Card</button></div><div id="pf"></div><button class="btn" id="pbtn" onclick="pay('${bid}')">Pay ₹${(b.tot+fee).toLocaleString()}</button><div id="pmsg"></div>
- <p class="mu" style="font-size:12px">Demo payment: no money moves and no card data is stored. The live version uses Razorpay (test mode first), with the order created by a Lambda.</p>`);setPm("u")}
+ ${PAY.mode==="razorpay"?"":`<div class="tabs"><button class="fc on" id="tu" onclick="setPm('u')">UPI</button><button class="fc" id="tc" onclick="setPm('c')">Card</button></div>`}<div id="pf"></div><button class="btn" id="pbtn" onclick="pay('${bid}')">Pay ₹${(b.tot+fee).toLocaleString()}</button><div id="pmsg"></div>
+ ${PAY.mode==="razorpay"?`<p class="mu" style="font-size:12px">Secure checkout by Razorpay in <b>test mode</b>: no real money moves. Test card 4100 2800 0000 1007 (any future expiry, any CVV, OTP 1234) or UPI <b>success@razorpay</b>.</p>`:`<p class="mu" style="font-size:12px">Demo payment: no money moves and no card data is stored.</p>`}`);if(PAY.mode!=="razorpay")setPm("u")}
 function setPm(k){pmode=k;["u","c"].forEach(x=>document.getElementById("t"+x).classList.toggle("on",x===k));
  document.getElementById("pf").innerHTML=k==="u"?'<label>UPI ID<input id="f1" placeholder="name@bank"></label>':'<label>Card number<input id="f1" inputmode="numeric" placeholder="16 digits"></label><label>Expiry (MM/YY)<input id="f2"></label>'}
-async function pay(bid){const b=B.find(x=>x.id===bid),m=document.getElementById("pmsg"),f=document.getElementById("f1").value.trim(),er=t=>m.innerHTML=`<div class="m e">${t}</div>`;
+function loadRzp(){return new Promise((ok,no)=>{if(window.Razorpay)return ok();const s=document.createElement("script");s.src="https://checkout.razorpay.com/v1/checkout.js";s.onload=ok;s.onerror=()=>no(new Error("Could not load the payment window. Check your internet."));document.head.appendChild(s)})}
+function paidOk(b){b.st="CONFIRMED";b.paid="Razorpay";delete b.exp;
+ openM(`<h2 class="serif" style="margin-top:0">Booking confirmed</h2><p>Booking ID <b>${b.id}</b>. ${esc(b.t)}, ${b.ci} to ${b.co}.</p><p class="mu">Payment received through Razorpay (test mode).</p><button class="btn" onclick="closeM();show('mine')">View my bookings</button>`)}
+async function payRzp(b){const m=document.getElementById("pmsg"),btn=document.getElementById("pbtn"),er=t=>{m.innerHTML=`<div class="m e">${t}</div>`;btn.disabled=false};
+ if(b.st==="HOLD"&&b.exp<Date.now())return er("Hold expired. Book again to pick dates.");
+ btn.disabled=true;m.innerHTML='<div class="m s">Preparing secure checkout...</div>';
+ let o;try{o=await api("/bookings/"+b.l+"/"+b.id+"/pay-order",{m:"POST",auth:1});await loadRzp()}catch(x){return er(esc(x.message))}
+ let done=false;
+ const rz=new Razorpay({key:o.key_id,amount:o.amount,currency:o.currency,order_id:o.order_id,name:"LocalStay India",description:b.t,prefill:{email:U||""},theme:{color:"#0f766e"},
+  modal:{ondismiss:()=>{if(!done)er("Payment cancelled. Your dates stay held until the timer ends.")}},
+  handler:async r=>{done=true;m.innerHTML='<div class="m s">Verifying payment...</div>';
+   try{await api("/bookings/"+b.l+"/"+b.id+"/verify",{m:"POST",auth:1,b:{razorpay_order_id:r.razorpay_order_id,razorpay_payment_id:r.razorpay_payment_id,razorpay_signature:r.razorpay_signature}});paidOk(b)}
+   catch(x){m.innerHTML='<div class="m e">Payment received but we could not confirm it yet ('+esc(x.message)+'). It will confirm automatically; check My bookings in a minute.</div>';loadBookings()}}});
+ rz.on("payment.failed",r=>{er(esc((r.error&&r.error.description)||"Payment failed. Try again."))});
+ rz.open()}
+async function pay(bid){const b=B.find(x=>x.id===bid);if(PAY.mode==="razorpay"&&LIVE)return payRzp(b);
+ const m=document.getElementById("pmsg"),f=document.getElementById("f1").value.trim(),er=t=>m.innerHTML=`<div class="m e">${t}</div>`;
  if(b.st==="HOLD"&&b.exp<Date.now())return er("Hold expired. Book again to pick dates.");
  if(pmode==="u"&&!/^[\w.\-]{2,}@[a-z]{2,}$/i.test(f))return er("Enter a valid UPI ID like name@bank.");
  if(pmode==="c"){if(!/^\d{16}$/.test(f.replace(/\s/g,"")))return er("Card number must be 16 digits.");if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(document.getElementById("f2").value.trim()))return er("Expiry must look like 08/28.")}

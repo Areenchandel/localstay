@@ -100,3 +100,13 @@ def test_unknown_path_is_404(client):
 def test_cors_header_present(client):
     r = client.get("/listings", headers={"Origin": "https://example.com"})
     assert r.headers.get("access-control-allow-origin") == "*"
+
+
+def test_webhook_passes_through_the_container_with_headers(client):
+    import hmac, hashlib, handler
+    handler._RZP["conf"] = {"key_id": "k", "key_secret": "s", "webhook_secret": "w"}
+    raw = json.dumps({"event": "payment.failed", "payload": {}})
+    sig = hmac.new(b"w", raw.encode(), hashlib.sha256).hexdigest()
+    ok = client.post("/razorpay/webhook", content=raw, headers={"X-Razorpay-Signature": sig})
+    assert ok.status_code == 200 and ok.json() == {"ignored": True}
+    assert client.post("/razorpay/webhook", content=raw, headers={"X-Razorpay-Signature": "bad"}).status_code == 400

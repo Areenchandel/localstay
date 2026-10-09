@@ -110,6 +110,17 @@ resource "aws_iam_role_policy" "fn" {
       },
       {
         Effect   = "Allow"
+        Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+        Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/localstay/razorpay/*"
+      },
+      {
+        Effect    = "Allow"
+        Action    = ["kms:Decrypt"]
+        Resource  = "*"
+        Condition = { StringEquals = { "kms:ViaService" = "ssm.${var.region}.amazonaws.com" } }
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "${aws_cloudwatch_log_group.fn.arn}:*"
       }
@@ -140,6 +151,7 @@ resource "aws_lambda_function" "api" {
       DEMO_PAYMENTS = var.demo_payments
       PHOTO_BUCKET  = aws_s3_bucket.site.bucket
       PHOTO_BASE    = "https://${aws_cloudfront_distribution.site.domain_name}"
+      RAZORPAY_PARAM_PREFIX = "/localstay/razorpay"
     }
   }
   depends_on = [aws_cloudwatch_log_group.fn]
@@ -201,6 +213,10 @@ locals {
     "POST /bookings"                     = true
     "GET /bookings/me"                   = true
     "POST /bookings/{lid}/{bid}/confirm" = true
+    "POST /bookings/{lid}/{bid}/pay-order" = true
+    "POST /bookings/{lid}/{bid}/verify"  = true
+    "GET /config"                        = false
+    "POST /razorpay/webhook"             = false
     "POST /reviews"                      = true
     "POST /local/apply"                  = true
     "GET /local/me"                      = true

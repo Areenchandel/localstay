@@ -74,7 +74,7 @@ async def gateway(full_path: str, request: Request):
         if method == request.method and m:
             body = (await request.body()).decode() or None
             event = {"routeKey": key, "pathParameters": m.groupdict() or None,
-                     "queryStringParameters": dict(request.query_params) or None, "body": body,
+                     "queryStringParameters": dict(request.query_params) or None, "body": body, "headers": dict(request.headers),
                      "requestContext": {"authorizer": {"jwt": {"claims": claims_from(request)}}}}
             r = await run_in_threadpool(handler.handler, event, None)
             return Response(content=r["body"], status_code=r["statusCode"], media_type="application/json")

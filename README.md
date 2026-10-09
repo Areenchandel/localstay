@@ -1,8 +1,8 @@
-﻿# LocalStay India
+# LocalStay India
 
 **Know the place before you book it.** A serverless homestay booking platform on AWS where every stay shows what the place is *really* like, and people who live there can review it.
 
-Live demo: https://d9ci3vlczulbo.cloudfront.net
+Live demo: _add your CloudFront URL here_ (`terraform output site_url`)
 
 ## The problem
 
@@ -36,6 +36,32 @@ All infrastructure is Terraform (`backend/infra`). Every push to `main` runs a G
 
 **Monitoring:** CloudWatch alarms on Lambda errors, Lambda duration, API Gateway 5xx and DynamoDB throttling send an email through SNS. An AWS Budget alerts at 80% of $5.
 
+## Two deployments of the same API
+
+The business logic lives in one file (`backend/api/handler.py`). It runs in two ways, against the same DynamoDB table and the same Cognito pool:
+
+| | Serverless (main) | Container on EC2 (optional) |
+|---|---|---|
+| Entry point | API Gateway HTTP API + Lambda | FastAPI (`backend/ec2/app.py`) in Docker on one t3.micro |
+| Cost when idle | About zero (pay per request) | Instance and public IP bill every hour while it runs |
+| Scaling | Automatic, per request | One instance; scaling needs an Auto Scaling group and a load balancer |
+| Cold start | Yes, a few hundred ms on first call | No, always warm |
+| Ops work | None: no OS, no patching | Patch the OS, manage the container, restart on failure |
+| HTTPS | Built in (CloudFront, API Gateway) | Not set up; needs a load balancer with a certificate |
+| Auth | API Gateway JWT authorizer, plus guard in Lambda | The wrapper verifies the Cognito token (signature, issuer, audience), plus the same guard |
+| Access to the box | None | No SSH port; SSM Session Manager only |
+
+Why both: serverless suits small and spiky traffic and costs almost nothing; a container is easier to move, debug locally and run steady traffic. Because the handler is shared, the 50 automated tests cover both paths.
+
+The EC2 version is **off by default** (`enable_ec2 = false`) to avoid cost. Turn it on or off from `backend/infra`:
+
+```
+terraform apply -var "budget_email=you@example.com" -var "enable_ec2=true"
+terraform apply -var "budget_email=you@example.com" -var "enable_ec2=false"
+```
+
+Limitations of the EC2 version: HTTP only, a single instance, and the image is built on the instance at boot (a production setup would build in CI, push to ECR and use an Auto Scaling group behind a load balancer).
+
 ## Design decisions
 
 - **No double bookings:** one lock item per night; `TransactWriteItems` writes all nights plus the booking with a condition `attribute_not_exists OR hold_until < now`. If any night is taken, nothing is written.
@@ -47,7 +73,7 @@ All infrastructure is Terraform (`backend/infra`). Every push to `main` runs a G
 
 ## Honest limitations
 
-- **Payments are a demo.** No money moves. `DEMO_PAYMENTS=true` lets a user confirm their own booking; a real version confirms through a signed Razorpay webhook.
+- **Payments run in Razorpay test mode.** The full flow is real (order, checkout, signature check, webhook) but no real money moves. Going live needs Razorpay KYC and live keys. Without keys in SSM the app falls back to a demo confirm (`DEMO_PAYMENTS`).
 - **Listings, distances, ratings and season multipliers are sample data.** Real data would come from OpenStreetMap plus host input plus guest verification.
 - **Local verification is manual** (admin runs `scripts/local_admin.py`). It is a workflow, not automated identity verification.
 - Pricing is rule-based, not machine learning.
@@ -94,7 +120,11 @@ python backend/scripts/local_admin.py approve person@example.com
 | GET /listings, GET /listings/{id} | no | stays, reviews, verification, prices |
 | POST /listings | yes | host adds a stay |
 | POST /bookings | yes | hold nights (atomic) |
-| POST /bookings/{lid}/{bid}/confirm | yes | demo confirm |
+| POST /bookings/{lid}/{bid}/confirm | yes | demo confirm (closed when Razorpay is on) |
+| POST /bookings/{lid}/{bid}/pay-order | yes | create Razorpay order, amount computed on server |
+| POST /bookings/{lid}/{bid}/verify | yes | verify checkout HMAC signature, confirm booking |
+| GET /config | no | payment mode and public key id |
+| POST /razorpay/webhook | no | signed webhook, authoritative confirmation |
 | GET /bookings/me | yes | my bookings |
 | POST /reviews | yes | guest review + verify claims (after check-out) |
 | POST /local/apply, GET /local/me | yes | Verified Local application and status |
@@ -104,3 +134,12 @@ python backend/scripts/local_admin.py approve person@example.com
 ## Next
 
 Razorpay (test mode) with webhook, OpenStreetMap distance import, "Ask a Local" Q&A, CI/CD with GitHub Actions, CloudWatch alarms.
+
+
+## Payments (Razorpay, test mode)
+
+1. Browser asks the API for an order. The server computes the amount (stay + 10% fee) and creates the Razorpay order; the client never sends a price.
+2. Razorpay Checkout collects the payment. The browser sends back `order_id`, `payment_id`, `signature`; the server checks the HMAC-SHA256 with the key secret.
+3. A signed webhook (`payment.captured`) also confirms the booking, so a closed tab does not lose a paid booking. Confirmation is idempotent.
+4. If the dates were lost while the user was paying (hold expired and someone else booked), the payment is refunded automatically.
+5. Keys live in SSM Parameter Store (SecureString), never in code or env files. The role gets read access to `/localstay/razorpay/*` only.

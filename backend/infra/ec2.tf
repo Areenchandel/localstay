@@ -73,6 +73,15 @@ resource "aws_iam_role_policy" "ec2_db" {
       Effect   = "Allow"
       Action   = ["s3:PutObject", "s3:GetObject"]
       Resource = "${aws_s3_bucket.site.arn}/photos/*"
+      }, {
+      Effect   = "Allow"
+      Action   = ["ssm:GetParameter", "ssm:GetParameters"]
+      Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/localstay/razorpay/*"
+      }, {
+      Effect    = "Allow"
+      Action    = ["kms:Decrypt"]
+      Resource  = "*"
+      Condition = { StringEquals = { "kms:ViaService" = "ssm.${var.region}.amazonaws.com" } }
     }]
   })
 }
@@ -118,6 +127,7 @@ resource "aws_instance" "api" {
       -e TABLE=${aws_dynamodb_table.main.name} -e AWS_DEFAULT_REGION=${var.region} \
       -e USER_POOL_ID=${aws_cognito_user_pool.up.id} -e CLIENT_ID=${aws_cognito_user_pool_client.web.id} \
       -e PHOTO_BUCKET=${aws_s3_bucket.site.bucket} -e PHOTO_BASE=https://${aws_cloudfront_distribution.site.domain_name} \
+      -e RAZORPAY_PARAM_PREFIX=/localstay/razorpay \
       -e DEMO_PAYMENTS=${var.demo_payments} localstay
   EOT
 
