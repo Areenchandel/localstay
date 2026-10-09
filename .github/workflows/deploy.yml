@@ -6,12 +6,20 @@ permissions:
   id-token: write
   contents: read
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check Python code compiles
-        run: python -m py_compile backend/api/handler.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pytest "moto[dynamodb]" boto3
+      - run: python -m pytest backend/tests -v
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::190335339393:role/localstay-github-deploy

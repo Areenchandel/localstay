@@ -15,3 +15,5 @@ accessKeys*
 credentials
 .DS_Store
 Thumbs.db
+
+.pytest_cache/
