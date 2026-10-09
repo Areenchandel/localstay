@@ -69,6 +69,10 @@ resource "aws_iam_role_policy" "ec2_db" {
       Effect   = "Allow"
       Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query", "dynamodb:Scan"]
       Resource = [aws_dynamodb_table.main.arn, "${aws_dynamodb_table.main.arn}/index/*"]
+      }, {
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject"]
+      Resource = "${aws_s3_bucket.site.arn}/photos/*"
     }]
   })
 }
@@ -113,6 +117,7 @@ resource "aws_instance" "api" {
     docker run -d --name localstay --restart unless-stopped -p 80:8000 \
       -e TABLE=${aws_dynamodb_table.main.name} -e AWS_DEFAULT_REGION=${var.region} \
       -e USER_POOL_ID=${aws_cognito_user_pool.up.id} -e CLIENT_ID=${aws_cognito_user_pool_client.web.id} \
+      -e PHOTO_BUCKET=${aws_s3_bucket.site.bucket} -e PHOTO_BASE=https://${aws_cloudfront_distribution.site.domain_name} \
       -e DEMO_PAYMENTS=${var.demo_payments} localstay
   EOT
 

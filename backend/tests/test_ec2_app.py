@@ -10,7 +10,8 @@ HERE = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(HERE, "..", "api"))
 sys.path.insert(0, os.path.join(HERE, "..", "ec2"))
 os.environ.update(TABLE="LocalStay", AWS_DEFAULT_REGION="ap-south-1", AWS_ACCESS_KEY_ID="test", AWS_SECRET_ACCESS_KEY="test",
-                  DEMO_PAYMENTS="true", USER_POOL_ID="pool1", CLIENT_ID="client1")
+                  DEMO_PAYMENTS="true", USER_POOL_ID="pool1", CLIENT_ID="client1",
+                  PHOTO_BUCKET="photos-test", PHOTO_BASE="https://cdn.example.com")
 KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
@@ -34,6 +35,7 @@ def client():
             AttributeDefinitions=[{"AttributeName": a, "AttributeType": "S"} for a in ("PK", "SK", "GSI1PK", "GSI1SK", "GSI2PK", "GSI2SK")],
             GlobalSecondaryIndexes=[{"IndexName": n, "KeySchema": [{"AttributeName": n + "PK", "KeyType": "HASH"}, {"AttributeName": n + "SK", "KeyType": "RANGE"}],
                                      "Projection": {"ProjectionType": "ALL"}} for n in ("GSI1", "GSI2")])
+        boto3.client("s3", region_name="ap-south-1").create_bucket(Bucket="photos-test", CreateBucketConfiguration={"LocationConstraint": "ap-south-1"})
         import handler, app
         importlib.reload(handler)
         importlib.reload(app)

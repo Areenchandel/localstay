@@ -14,6 +14,17 @@ resource "aws_s3_bucket_public_access_block" "site" {
   restrict_public_buckets = true
 }
 
+# the browser uploads listing photos straight to the bucket with a signed form (see handler.py)
+resource "aws_s3_bucket_cors_configuration" "site" {
+  bucket = aws_s3_bucket.site.id
+  cors_rule {
+    allowed_methods = ["POST"]
+    allowed_origins = ["*"]
+    allowed_headers = ["*"]
+    max_age_seconds = 3000
+  }
+}
+
 resource "aws_cloudfront_origin_access_control" "site" {
   name                              = "localstay-site"
   origin_access_control_origin_type = "s3"

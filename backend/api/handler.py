@@ -1,9 +1,11 @@
 """LocalStay API: one Lambda behind API Gateway HTTP API, one DynamoDB table (single-table design)."""
-import json, os, time, uuid, datetime as dt
+import json, os, re, time, uuid, datetime as dt
 from decimal import Decimal
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
 from boto3.dynamodb.types import TypeSerializer
+from botocore.config import Config
+from botocore.exceptions import ClientError
 
 TABLE = os.environ["TABLE"]
 DEMO_PAYMENTS = os.environ.get("DEMO_PAYMENTS", "false") == "true"
@@ -12,6 +14,13 @@ DB = boto3.client("dynamodb")
 S = TypeSerializer()
 FESTIVALS = {"2026-10-20", "2026-11-08", "2026-11-09", "2026-12-25", "2026-12-31", "2027-01-26", "2027-03-04"}
 HOLD_SECONDS = 600
+PHOTO_BUCKET = os.environ.get("PHOTO_BUCKET", "")
+PHOTO_BASE = os.environ.get("PHOTO_BASE", "").rstrip("/")  # CloudFront URL that serves the photos
+S3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "ap-south-1",
+                  config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}))
+PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
+MAX_PHOTOS = 6
+MAX_PHOTO_BYTES = 5_000_000
 
 
 class Err(Exception):
@@ -69,6 +78,10 @@ def get_meta(lid):
 
 
 # ---------- listings ----------
+def photo_urls(item):
+    return [f"{PHOTO_BASE}/{k}" for k in item.get("photos", [])]
+
+
 def list_listings(qs):
     city = qs.get("city")
     if city:
@@ -78,6 +91,7 @@ def list_listings(qs):
     items = r["Items"]
     for i in items:
         i["tonight_price"] = price_for(i, dt.date.today().isoformat())
+        i["photos"] = photo_urls(i)
     return resp(200, {"listings": items})
 
 
@@ -92,6 +106,7 @@ def verification(reviews):
 
 def get_listing(lid):
     meta = get_meta(lid)
+    meta["photos"] = photo_urls(meta)
     revs = T.query(KeyConditionExpression=Key("PK").eq(f"LISTING#{lid}") & Key("SK").begins_with("REVIEW#"))["Items"]
     revs = [{k: v for k, v in r.items() if k != "guest"} for r in revs]  # do not expose reviewer ids
     nights = T.query(KeyConditionExpression=Key("PK").eq(f"LISTING#{lid}") & Key("SK").begins_with("NIGHT#"),
@@ -121,6 +136,45 @@ def create_listing(sub, name, b):
             "GSI1PK": f"CITY#{city.lower()}", "GSI1SK": f"LISTING#{lid}", "GSI2PK": f"USER#{sub}", "GSI2SK": f"LISTING#{lid}"}
     T.put_item(Item=item)
     return resp(201, {"id": lid})
+
+
+# ---------- photos: the browser uploads straight to S3 with a short-lived signed form, Lambda never touches the file ----------
+def photo_upload_form(sub, lid, b):
+    meta = get_meta(lid)
+    if meta.get("host_id") != sub:
+        raise Err(403, "Only the host can add photos.")
+    if not PHOTO_BUCKET:
+        raise Err(503, "Photo upload is not configured.")
+    ct = b.get("content_type")
+    ext = PHOTO_TYPES.get(ct)
+    if not ext:
+        raise Err(400, "Photos must be JPEG, PNG or WebP.")
+    if len(meta.get("photos", [])) >= MAX_PHOTOS:
+        raise Err(400, f"A listing can have up to {MAX_PHOTOS} photos.")
+    key = f"photos/{lid}/{uuid.uuid4().hex[:12]}.{ext}"
+    post = S3.generate_presigned_post(PHOTO_BUCKET, key, Fields={"Content-Type": ct},
+                                      Conditions=[{"Content-Type": ct}, ["content-length-range", 1, MAX_PHOTO_BYTES]], ExpiresIn=300)
+    return resp(200, {"upload": post, "key": key})
+
+
+def add_photo(sub, lid, b):
+    key = str(b.get("key", ""))
+    if not re.match(rf"^photos/{re.escape(lid)}/[0-9a-f]{{12}}\.(jpg|png|webp)$", key):
+        raise Err(400, "Invalid photo key.")
+    if get_meta(lid).get("host_id") != sub:
+        raise Err(403, "Only the host can add photos.")
+    try:
+        S3.head_object(Bucket=PHOTO_BUCKET, Key=key)  # make sure the file really arrived
+    except ClientError:
+        raise Err(400, "Upload not found. Please try again.")
+    try:
+        T.update_item(Key={"PK": f"LISTING#{lid}", "SK": "META"},
+                      UpdateExpression="SET photos = list_append(if_not_exists(photos, :e), :k)",
+                      ConditionExpression="host_id = :h AND (attribute_not_exists(photos) OR size(photos) < :m)",
+                      ExpressionAttributeValues={":e": [], ":k": [key], ":h": sub, ":m": MAX_PHOTOS})
+    except T.meta.client.exceptions.ConditionalCheckFailedException:
+        raise Err(400, f"A listing can have up to {MAX_PHOTOS} photos.")
+    return resp(201, {"url": f"{PHOTO_BASE}/{key}"})
 
 
 # ---------- bookings ----------
@@ -256,6 +310,8 @@ ROUTES = {
     "GET /listings": lambda c: list_listings(c["qs"]),
     "GET /listings/{id}": lambda c: get_listing(c["path"]["id"]),
     "POST /listings": lambda c: create_listing(c["sub"], c["name"], c["body"]),
+    "POST /listings/{id}/photo-url": lambda c: photo_upload_form(c["sub"], c["path"]["id"], c["body"]),
+    "POST /listings/{id}/photos": lambda c: add_photo(c["sub"], c["path"]["id"], c["body"]),
     "POST /bookings": lambda c: create_booking(c["sub"], c["name"], c["body"]),
     "GET /bookings/me": lambda c: my_bookings(c["sub"]),
     "POST /bookings/{lid}/{bid}/confirm": lambda c: confirm_booking(c["sub"], c["path"]["lid"], c["path"]["bid"]),

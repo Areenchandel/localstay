@@ -105,6 +105,11 @@ resource "aws_iam_role_policy" "fn" {
       },
       {
         Effect   = "Allow"
+        Action   = ["s3:PutObject", "s3:GetObject"]
+        Resource = "${aws_s3_bucket.site.arn}/photos/*"
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "${aws_cloudwatch_log_group.fn.arn}:*"
       }
@@ -133,6 +138,8 @@ resource "aws_lambda_function" "api" {
     variables = {
       TABLE         = aws_dynamodb_table.main.name
       DEMO_PAYMENTS = var.demo_payments
+      PHOTO_BUCKET  = aws_s3_bucket.site.bucket
+      PHOTO_BASE    = "https://${aws_cloudfront_distribution.site.domain_name}"
     }
   }
   depends_on = [aws_cloudwatch_log_group.fn]
@@ -189,6 +196,8 @@ locals {
     "GET /listings"                      = false
     "GET /listings/{id}"                 = false
     "POST /listings"                     = true
+    "POST /listings/{id}/photo-url"      = true
+    "POST /listings/{id}/photos"         = true
     "POST /bookings"                     = true
     "GET /bookings/me"                   = true
     "POST /bookings/{lid}/{bid}/confirm" = true

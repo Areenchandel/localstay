@@ -31,7 +31,7 @@ h2{font-size:28px;margin:4px 0 6px}.sub{color:var(--mu);margin:0 0 18px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px}
 .pc{background:var(--card);border:1px solid var(--ln);border-radius:20px;overflow:hidden;cursor:pointer}.pc:focus-visible,button:focus-visible{outline:3px solid var(--sf);outline-offset:2px}
 .pc:hover{box-shadow:0 8px 28px rgba(107,66,38,.15)}
-.ph{position:relative;height:160px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:"Playfair Display",serif;font-size:20px}.ph svg{position:absolute;inset:0;width:100%;height:100%}.ph span{position:relative;text-shadow:0 1px 6px rgba(0,0,0,.5)}.hero-ph{height:230px;border-radius:14px;margin:10px 0 4px}
+.ph{position:relative;height:160px;overflow:hidden;display:flex;align-items:flex-end;padding:12px;color:#fff;font-family:"Playfair Display",serif;font-size:20px}.ph svg{position:absolute;inset:0;width:100%;height:100%}.ph span{position:relative;text-shadow:0 1px 6px rgba(0,0,0,.5)}.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.ph.hasimg::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 50%,rgba(28,10,2,.65));z-index:1}.ph.hasimg span{z-index:2}.thumbs{display:flex;gap:8px;margin:8px 0;overflow-x:auto}.thumbs img{width:72px;height:54px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--ln)}.hero-ph{height:230px;border-radius:14px;margin:10px 0 4px}
 .pb{padding:16px}.pb h3{margin:0;font-size:18px}.mu{color:var(--mu);font-size:14px}
 .cp{display:inline-block;font-size:12px;border-radius:99px;padding:3px 10px;margin:8px 6px 0 0}
 .r{background:var(--redb);color:var(--red)}.a{background:var(--ambb);color:var(--amb)}.g{background:var(--okb);color:var(--ok)}
@@ -161,7 +161,7 @@ async function api(path,o={}){const h={"Content-Type":"application/json"};if(o.a
 async function cog(t,b){let r;
  try{r=await fetch("https://cognito-idp."+CFG.region+".amazonaws.com/",{method:"POST",headers:{"Content-Type":"application/x-amz-json-1.1","X-Amz-Target":"AWSCognitoIdentityProviderService."+t},body:JSON.stringify(b)})}catch(e){throw new Error("Cannot reach Cognito.")}
  const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"Login failed");return d}
-const adapt=x=>({id:x.id,city:x.city,name:x.title,host:x.host,hid:x.host_id,base:x.base,type:x.type,h:x.hospital_km,f:x.food_delivery,n:x.networks||[],a:x.atm_km,al:x.altitude_m,rd:x.road_note||"",tp:x.tonight_price,bio:x.host_bio,lang:x.host_languages,since:x.host_since});
+const adapt=x=>({id:x.id,city:x.city,name:x.title,host:x.host,hid:x.host_id,base:x.base,type:x.type,h:x.hospital_km,f:x.food_delivery,n:x.networks||[],a:x.atm_km,al:x.altitude_m,rd:x.road_note||"",tp:x.tonight_price,bio:x.host_bio,lang:x.host_languages,since:x.host_since,ph:x.photos||[]});
 async function loadListings(){LOADING=true;LERR="";render();try{L=(await api("/listings")).listings.map(adapt)}catch(e){LERR=e.message}LOADING=false;render()}
 async function loadBookings(){try{B=(await api("/bookings/me",{auth:1})).bookings.map(x=>({id:x.id,l:x.listing_id,t:x.title,g:U,ci:x.check_in,co:x.check_out,ns:x.nights,tot:x.total,st:x.status,exp:(x.hold_until||0)*1000}));render()}catch(e){document.getElementById("app").innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
 if(LIVE){L=[];B=[];R=[];try{const t=st.g("tok",null);if(t&&b64(t.split(".")[1]).exp*1000>Date.now())setTok(t);else{U=null;st.s("U",null)}}catch(e){U=null}}
@@ -205,7 +205,7 @@ function searchGo(){city=document.getElementById("sc").value;render();document.g
 function home(){if(LIVE&&LOADING)return '<p class="mu">Loading stays...</p>';if(LERR)return '<div class="m e">'+esc(LERR)+'</div><button class="go" onclick="loadListings()">Try again</button>';
  const t=iso(new Date()),ty=["all","beachfront","mountain","heritage","nature","budget"];
  const items=L.filter(l=>(city==="all"||l.city===city)&&(typ==="all"||l.type===typ)).map(l=>{const w=warn(l),p=price(l,t);return `<div class="pc" tabindex="0" role="button" onclick="detail('${l.id}')" onkeydown="if(event.key==='Enter')detail('${l.id}')">
- <div class="ph">${scene(l)}<span>${esc(l.city)}</span></div>
+ <div class="ph${l.ph&&l.ph.length?" hasimg":""}">${l.ph&&l.ph.length?`<img src="${esc(l.ph[0])}" alt="${esc(l.name)}" loading="lazy">`:scene(l)}<span>${esc(l.city)}</span></div>
  <div class="pb"><h3>${esc(l.name)}</h3><div class="mu">Hosted by ${esc(l.host)} · ${l.type}</div>
  ${w.slice(0,3).map(([k,m])=>`<span class="cp ${k}">${k==="r"?(l.h>30?"Hospital "+l.h+" km":"High altitude"):m.split(".")[0].slice(0,30)}</span>`).join("")||'<span class="cp g">Well connected</span>'}
  <div class="pr">₹${p.p.toLocaleString()} <span class="mu" style="font-weight:400">tonight · ${p.w}</span></div></div></div>`}).join("");
@@ -221,7 +221,7 @@ function detailRender(id){
  const l=L.find(x=>x.id===id),w=warn(l),red=w.some(x=>x[0]==="r"),t=iso(new Date());
  const rows=[["Nearest hospital",l.h+" km",l.h>30?"r":""],["Food delivery",l.f?"Available":"Not available",l.f?"":"a"],["Mobile network",l.n.join(", "),l.n.includes("Jio")?"":"a"],["Nearest ATM",l.a+" km",l.a>15?"a":""],["Altitude",l.al+" m",l.al>3000?"r":""],["Road access",l.rd,""]].map(([a,b,c],i)=>{const k=["h","f","n"][i],q=k?vf(l.id,k):"";return `<div class="row ${c}"><span><b>${a}</b>${q?`<span class="vb"${q[0]==="D"?' style="background:var(--redb);color:var(--red)"':""}>${q}</span>`:""}</span><span>${esc(b)}</span></div>`}).join("");
  const pr=Array.from({length:7},(_,i)=>{const d=add(t,i),p=price(l,d);return `<tr><td>${d}</td><td>₹${p.p}</td><td class="mu">${p.w}</td></tr>`}).join("");
- document.getElementById("md").innerHTML=`<button class="x" onclick="closeM()" aria-label="Close">×</button><div class="ph hero-ph" style="margin-top:28px">${scene(l)}</div><h2 class="serif" style="margin-top:8px">${esc(l.name)}</h2><div class="mu">${esc(l.city)} · hosted by ${esc(l.host)} · base ₹${l.base}/night</div>
+ document.getElementById("md").innerHTML=`<button class="x" onclick="closeM()" aria-label="Close">×</button>${heroHtml(l)}<h2 class="serif" style="margin-top:8px">${esc(l.name)}</h2><div class="mu">${esc(l.city)} · hosted by ${esc(l.host)} · base ₹${l.base}/night</div>
  <div class="cols"><div><div class="rc"><h4>Location Reality Card</h4>${rows}<div class="note">Details are host-reported until 3 guests confirm them. Confirm before travelling, especially for health needs.</div></div>
  <div class="pn" style="margin-top:14px"><b>Next 7 nights</b><table>${pr}</table></div>${hostP(l)}${revs(l)}${localVoices(l)}</div>
  <div><b>Book this stay</b><label>Check-in<input type="date" id="ci" min="${t}"></label><label>Check-out<input type="date" id="co" min="${t}"></label>
@@ -271,6 +271,25 @@ async function saveRv(bid){const b=B.find(x=>x.id===bid),t=document.getElementBy
 function vf(id,k){const r=R.filter(x=>x.l===id),y=r.filter(x=>x.v[k]==="y").length,n=r.filter(x=>x.v[k]==="n").length;return n>=2?"Disputed by "+n+" guests":y>=3?"Verified by "+y+" guests":""}
 function hostP(l){const h=LIVE?{bio:l.bio,lang:l.lang,since:l.since}:UD[l.hid],n=L.filter(x=>x.host===l.host).length;return `<div class="pn" style="margin-top:14px"><b>About the host</b><div class="mu">${esc(l.host)}${h&&h.since?" · hosting since "+esc(h.since):""}${h&&h.lang?" · speaks "+esc(h.lang):""}</div><p style="margin:8px 0 0;font-size:14px">${h&&h.bio?esc(h.bio):"This host has not written a profile yet."}</p><div class="mu" style="margin-top:6px;font-size:13px">${n} listing(s) on LocalStay</div></div>`}
 function revs(l){const r=R.filter(x=>x.l===l.id),av=r.length?(r.reduce((s,x)=>s+x.s,0)/r.length).toFixed(1):null;return `<div class="pn"><b>Guest reviews</b> ${av?`<span class="stars">★</span> ${av} (${r.length})`:""}${r.map(x=>`<div class="rv"><span class="stars">${"★".repeat(x.s)}</span> <b>${esc(x.name)}</b> <span class="mu">${x.d}</span><div>${esc(x.t)}</div></div>`).join("")||'<div class="mu">No reviews yet. Guests can review after their stay.</div>'}</div>`}
+function heroHtml(l){const p=l.ph||[];
+ const main=p.length?`<img id="heroimg" src="${esc(p[0])}" alt="${esc(l.name)}">`:scene(l);
+ const th=p.length>1?`<div class="thumbs">${p.map(u=>`<img src="${esc(u)}" alt="" loading="lazy" onclick="document.getElementById('heroimg').src=this.src">`).join("")}</div>`:"";
+ const add=LIVE&&TOK&&l.hid===SUB&&p.length<6?`<div class="pn" style="margin-top:10px"><b>Add photos</b> <span class="mu">(you can add ${6-p.length} more)</span><br><input type="file" accept="image/*" multiple onchange="uploadFiles('${l.id}',[...this.files],true)"><div id="pm"></div></div>`:"";
+ return `<div class="ph hero-ph${p.length?" hasimg":""}" style="margin-top:28px">${main}</div>${th}${add}`}
+function shrink(f){return new Promise((res,rej)=>{const img=new Image(),u=URL.createObjectURL(f);
+ img.onload=()=>{const s=Math.min(1,1600/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*s);c.height=Math.round(img.height*s);c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error("Could not read this image")),"image/jpeg",.85)};
+ img.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("That file is not an image"))};img.src=u})}
+async function uploadFiles(id,files,refresh){const m=document.getElementById("pm");let ok=0;
+ for(const f of files){try{
+  if(m)m.innerHTML='<div class="m">Uploading '+esc(f.name)+'...</div>';
+  const blob=await shrink(f);
+  const g=await api("/listings/"+id+"/photo-url",{m:"POST",auth:1,b:{content_type:"image/jpeg"}});
+  const fd=new FormData();Object.entries(g.upload.fields).forEach(([k,v])=>fd.append(k,v));fd.append("file",blob,"photo.jpg"); // file must be the last field
+  const r=await fetch(g.upload.url,{method:"POST",body:fd});if(!r.ok)throw new Error("Upload failed ("+r.status+")");
+  const d=await api("/listings/"+id+"/photos",{m:"POST",auth:1,b:{key:g.key}});
+  const l=L.find(x=>x.id===id);if(l)(l.ph=l.ph||[]).push(d.url);ok++}
+ catch(e){if(m)m.innerHTML='<div class="m e">'+esc(e.message)+'</div>';return ok}}
+ if(refresh){render();detailRender(id)}return ok}
 function host(){if(!U)return '<h2 class="serif">Log in to add your stay</h2><button class="go" onclick="login()">Log in</button>';
  return `<h2 class="serif">Add your stay</h2><p class="sub">Tell guests what the place is really like. Guests verify these details after their stay.</p><div class="pn" style="max-width:520px">
  <label>About you (shown to guests)<input id="hb" value="${esc((UD[U]||{}).bio||"")}"></label><label>Languages you speak<input id="hl" value="${esc((UD[U]||{}).lang||"")}"></label><label>Hosting since (year)<input id="hy" value="${esc((UD[U]||{}).since||"")}"></label><label>Title<input id="h1"></label><label>Destination<select id="h2">${Object.keys(C).map(c=>`<option>${c}</option>`).join("")}</select></label>
@@ -278,10 +297,11 @@ function host(){if(!U)return '<h2 class="serif">Log in to add your stay</h2><but
  <label>Food delivery available?<select id="h5"><option value="1">Yes</option><option value="0">No</option></select></label>
  <label>Networks that work (comma separated)<input id="h6" value="Jio, Airtel"></label><label>Nearest ATM (km)<input type="number" id="h7" value="2"></label>
  <label>Altitude (m)<input type="number" id="h8" value="100"></label><label>Road access note<input id="h9" value="Open all year"></label>
+ ${LIVE?'<label>Photos (optional, up to 3)<input type="file" id="hp" accept="image/*" multiple></label>':""}
  <button class="btn" onclick="addL()">Publish listing</button><div id="hm"></div></div>`}
 async function addL(){if(!LIVE)return addLDemo();const v=i=>document.getElementById(i).value.trim(),m=document.getElementById("hm");
  if(!v("h1")){m.innerHTML='<div class="m e">Title is required.</div>';return}
- try{await api("/listings",{m:"POST",auth:1,b:{title:v("h1"),city:v("h2"),base:+v("h3")||1000,hospital_km:+v("h4"),food_delivery:v("h5")==="1",networks:v("h6").split(",").map(x=>x.trim()).filter(Boolean),atm_km:+v("h7"),altitude_m:+v("h8"),road_note:v("h9"),bio:v("hb"),languages:v("hl"),since:v("hy")}});city="all";await loadListings();show("home")}
+ try{const nl=await api("/listings",{m:"POST",auth:1,b:{title:v("h1"),city:v("h2"),base:+v("h3")||1000,hospital_km:+v("h4"),food_delivery:v("h5")==="1",networks:v("h6").split(",").map(x=>x.trim()).filter(Boolean),atm_km:+v("h7"),altitude_m:+v("h8"),road_note:v("h9"),bio:v("hb"),languages:v("hl"),since:v("hy")}});const pf=document.getElementById("hp");if(pf&&pf.files.length){m.innerHTML='<div class="m">Uploading photos...</div>';await uploadFiles(nl.id,[...pf.files].slice(0,3),false)}city="all";await loadListings();show("home")}
  catch(e){m.innerHTML='<div class="m e">'+esc(e.message)+'</div>'}}
 function addLDemo(){const v=i=>document.getElementById(i).value.trim();
  if(!v("h1")){document.getElementById("hm").innerHTML='<div class="m e">Title is required.</div>';return}

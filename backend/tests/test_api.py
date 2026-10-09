@@ -10,7 +10,7 @@ from moto import mock_aws
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 os.environ.update(TABLE="LocalStay", AWS_DEFAULT_REGION="ap-south-1", AWS_ACCESS_KEY_ID="test",
-                  AWS_SECRET_ACCESS_KEY="test", DEMO_PAYMENTS="true")
+                  AWS_SECRET_ACCESS_KEY="test", DEMO_PAYMENTS="true", PHOTO_BUCKET="photos-test", PHOTO_BASE="https://cdn.example.com")
 
 
 @pytest.fixture
@@ -23,6 +23,7 @@ def h():
             AttributeDefinitions=[{"AttributeName": a, "AttributeType": "S"} for a in ("PK", "SK", "GSI1PK", "GSI1SK", "GSI2PK", "GSI2SK")],
             GlobalSecondaryIndexes=[{"IndexName": n, "KeySchema": [{"AttributeName": n + "PK", "KeyType": "HASH"}, {"AttributeName": n + "SK", "KeyType": "RANGE"}],
                                      "Projection": {"ProjectionType": "ALL"}} for n in ("GSI1", "GSI2")])
+        boto3.client("s3", region_name="ap-south-1").create_bucket(Bucket="photos-test", CreateBucketConfiguration={"LocationConstraint": "ap-south-1"})
         import handler
         importlib.reload(handler)
         handler.DEMO_PAYMENTS = True
@@ -252,3 +253,58 @@ def test_local_apply_validation(h, body):
 
 def test_local_reviews_needs_city(h):
     assert call(h, "GET /local/reviews")[0] == 400
+
+
+# ---------- photos ----------
+def put_file(h, key):
+    boto3.client("s3", region_name="ap-south-1").put_object(Bucket="photos-test", Key=key, Body=b"fake image bytes")
+
+
+def test_only_host_gets_upload_form(h):
+    lid = make_listing(h, host="host1")
+    assert call(h, "POST /listings/{id}/photo-url", {"content_type": "image/jpeg"}, sub="intruder", path={"id": lid})[0] == 403
+    code, body = call(h, "POST /listings/{id}/photo-url", {"content_type": "image/jpeg"}, sub="host1", path={"id": lid})
+    assert code == 200 and body["key"].startswith(f"photos/{lid}/") and body["key"].endswith(".jpg")
+    assert body["upload"]["url"].startswith("https://") and "policy" in body["upload"]["fields"]
+
+
+def test_upload_form_limits_size_and_type(h):
+    import base64
+    lid = make_listing(h, host="host1")
+    body = call(h, "POST /listings/{id}/photo-url", {"content_type": "image/png"}, sub="host1", path={"id": lid})[1]
+    policy = base64.b64decode(body["upload"]["fields"]["policy"]).decode()
+    assert "content-length-range" in policy and "image/png" in policy   # S3 itself rejects big files and other types
+    for bad in ("application/pdf", "text/html", None):
+        assert call(h, "POST /listings/{id}/photo-url", {"content_type": bad}, sub="host1", path={"id": lid})[0] == 400
+
+
+def test_add_photo_flow(h):
+    lid = make_listing(h, host="host1")
+    key = call(h, "POST /listings/{id}/photo-url", {"content_type": "image/jpeg"}, sub="host1", path={"id": lid})[1]["key"]
+    assert call(h, "POST /listings/{id}/photos", {"key": key}, sub="host1", path={"id": lid})[0] == 400   # not uploaded yet
+    put_file(h, key)
+    code, body = call(h, "POST /listings/{id}/photos", {"key": key}, sub="host1", path={"id": lid})
+    assert code == 201 and body["url"] == "https://cdn.example.com/" + key
+    assert call(h, "GET /listings/{id}", path={"id": lid})[1]["listing"]["photos"] == ["https://cdn.example.com/" + key]
+    assert call(h, "GET /listings")[1]["listings"][0]["photos"] == ["https://cdn.example.com/" + key]
+
+
+def test_add_photo_rejects_bad_keys_and_non_hosts(h):
+    lid, other = make_listing(h, host="host1"), make_listing(h, host="host2")
+    put_file(h, f"photos/{other}/aaaaaaaaaaaa.jpg")
+    assert call(h, "POST /listings/{id}/photos", {"key": f"photos/{other}/aaaaaaaaaaaa.jpg"}, sub="host1", path={"id": lid})[0] == 400  # other listing's file
+    assert call(h, "POST /listings/{id}/photos", {"key": "../secret.jpg"}, sub="host1", path={"id": lid})[0] == 400
+    put_file(h, f"photos/{lid}/bbbbbbbbbbbb.jpg")
+    assert call(h, "POST /listings/{id}/photos", {"key": f"photos/{lid}/bbbbbbbbbbbb.jpg"}, sub="intruder", path={"id": lid})[0] == 403
+    assert call(h, "POST /listings/{id}/photos", {"key": f"photos/{lid}/bbbbbbbbbbbb.jpg"}, path={"id": lid})[0] == 401
+
+
+def test_photo_limit(h):
+    lid = make_listing(h, host="host1")
+    for i in range(6):
+        key = f"photos/{lid}/{i:012x}.jpg"
+        put_file(h, key)
+        assert call(h, "POST /listings/{id}/photos", {"key": key}, sub="host1", path={"id": lid})[0] == 201
+    assert call(h, "POST /listings/{id}/photo-url", {"content_type": "image/jpeg"}, sub="host1", path={"id": lid})[0] == 400
+    put_file(h, f"photos/{lid}/{7:012x}.jpg")
+    assert call(h, "POST /listings/{id}/photos", {"key": f"photos/{lid}/{7:012x}.jpg"}, sub="host1", path={"id": lid})[0] == 400
