@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest "moto[dynamodb]" boto3
+      - run: pip install pytest httpx "moto[dynamodb]" -r backend/ec2/requirements.txt
       - run: python -m pytest backend/tests -v
   deploy:
     needs: test
