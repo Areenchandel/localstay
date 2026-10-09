@@ -75,6 +75,10 @@ resource "aws_iam_role_policy" "ec2_db" {
       Resource = "${aws_s3_bucket.site.arn}/photos/*"
       }, {
       Effect   = "Allow"
+      Action   = ["ses:SendEmail"]
+      Resource = "*"
+      }, {
+      Effect   = "Allow"
       Action   = ["ssm:GetParameter", "ssm:GetParameters"]
       Resource = "arn:aws:ssm:${var.region}:${data.aws_caller_identity.me.account_id}:parameter/localstay/razorpay/*"
       }, {
@@ -127,7 +131,7 @@ resource "aws_instance" "api" {
       -e TABLE=${aws_dynamodb_table.main.name} -e AWS_DEFAULT_REGION=${var.region} \
       -e USER_POOL_ID=${aws_cognito_user_pool.up.id} -e CLIENT_ID=${aws_cognito_user_pool_client.web.id} \
       -e PHOTO_BUCKET=${aws_s3_bucket.site.bucket} -e PHOTO_BASE=https://${aws_cloudfront_distribution.site.domain_name} \
-      -e RAZORPAY_PARAM_PREFIX=/localstay/razorpay \
+      -e RAZORPAY_PARAM_PREFIX=/localstay/razorpay -e SENDER_EMAIL=${var.budget_email} \
       -e DEMO_PAYMENTS=${var.demo_payments} localstay
   EOT
 

@@ -16,6 +16,8 @@ FESTIVALS = {"2026-10-20", "2026-11-08", "2026-11-09", "2026-12-25", "2026-12-31
 HOLD_SECONDS = 600
 PHOTO_BUCKET = os.environ.get("PHOTO_BUCKET", "")
 PHOTO_BASE = os.environ.get("PHOTO_BASE", "").rstrip("/")  # CloudFront URL that serves the photos
+SENDER = os.environ.get("SENDER_EMAIL", "")
+SES = boto3.client("ses", region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "ap-south-1") if SENDER else None
 S3 = boto3.client("s3", region_name=os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION") or "ap-south-1",
                   config=Config(signature_version="s3v4", s3={"addressing_style": "virtual"}))
 PHOTO_TYPES = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}
@@ -180,7 +182,7 @@ def add_photo(sub, lid, b):
 
 
 # ---------- bookings ----------
-def create_booking(sub, name, b):
+def create_booking(sub, name, b, email=""):
     lid = b.get("listing_id")
     meta = get_meta(lid)
     nights = nights_between(b.get("check_in"), b.get("check_out"))
@@ -194,7 +196,7 @@ def create_booking(sub, name, b):
     total = sum(price_for(meta, n) for n in nights)
     ops.append({"Put": {"TableName": TABLE, "Item": ser({
         "PK": f"LISTING#{lid}", "SK": f"BOOKING#{bid}", "GSI2PK": f"USER#{sub}", "GSI2SK": f"BOOKING#{bid}",
-        "id": bid, "listing_id": lid, "title": meta["title"], "guest": sub, "guest_name": name, "check_in": b["check_in"],
+        "id": bid, "listing_id": lid, "title": meta["title"], "guest": sub, "guest_name": name, "guest_email": email, "check_in": b["check_in"],
         "check_out": b["check_out"], "nights": nights, "total": total, "status": "HOLD", "hold_until": hold})}})
     try:
         DB.transact_write_items(TransactItems=ops)  # all nights + booking, or nothing
@@ -254,6 +256,21 @@ def config():
     return resp(200, {"payments": "razorpay" if c else "demo", "key_id": c.get("key_id")})
 
 
+def notify_confirmed(b):
+    """Best-effort confirmation email to the guest. Never raises: a mail problem must not undo a paid booking."""
+    to = b.get("guest_email")
+    if not (SES and SENDER and to):
+        return
+    try:
+        title, ci, co, n = b.get("title", "your stay"), b.get("check_in"), b.get("check_out"), len(b.get("nights", []))
+        text = (f"Hi {b.get('guest_name', 'there')},\n\nYour booking is confirmed.\n\n{title}\n{ci} to {co} ({n} night(s))\n"
+                f"Booking ID: {b.get('id')}\n\nConfirm local details with your host before you travel.\n\nLocalStay India")
+        SES.send_email(Source=SENDER, Destination={"ToAddresses": [to]},
+                       Message={"Subject": {"Data": f"Booking confirmed: {title}"}, "Body": {"Text": {"Data": text}}})
+    except Exception as e:  # noqa: BLE001
+        print("email failed", type(e).__name__, str(e)[:200])
+
+
 def finalize_booking(lid, bid, payment_id="demo"):
     """Turn a held booking into a confirmed one: keep the nights, drop the expiry. Safe to call twice."""
     b = get_booking(lid, bid)
@@ -271,6 +288,7 @@ def finalize_booking(lid, bid, payment_id="demo"):
         if get_booking(lid, bid)["status"] == "CONFIRMED":  # someone else (webhook or browser) got there first
             return
         raise Err(409, "Hold expired and the dates were taken. Please book again.")
+    notify_confirmed(b)  # only the call that actually confirmed it sends the mail
 
 
 def refund(lid, bid, pid):
@@ -458,7 +476,7 @@ ROUTES = {
     "POST /listings": lambda c: create_listing(c["sub"], c["name"], c["body"]),
     "POST /listings/{id}/photo-url": lambda c: photo_upload_form(c["sub"], c["path"]["id"], c["body"]),
     "POST /listings/{id}/photos": lambda c: add_photo(c["sub"], c["path"]["id"], c["body"]),
-    "POST /bookings": lambda c: create_booking(c["sub"], c["name"], c["body"]),
+    "POST /bookings": lambda c: create_booking(c["sub"], c["name"], c["body"], c["email"]),
     "GET /bookings/me": lambda c: my_bookings(c["sub"]),
     "POST /bookings/{lid}/{bid}/confirm": lambda c: confirm_booking(c["sub"], c["path"]["lid"], c["path"]["bid"]),
     "POST /bookings/{lid}/{bid}/pay-order": lambda c: pay_order(c["sub"], c["path"]["lid"], c["path"]["bid"]),

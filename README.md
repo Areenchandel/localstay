@@ -143,3 +143,7 @@ Razorpay (test mode) with webhook, OpenStreetMap distance import, "Ask a Local" 
 3. A signed webhook (`payment.captured`) also confirms the booking, so a closed tab does not lose a paid booking. Confirmation is idempotent.
 4. If the dates were lost while the user was paying (hold expired and someone else booked), the payment is refunded automatically.
 5. Keys live in SSM Parameter Store (SecureString), never in code or env files. The role gets read access to `/localstay/razorpay/*` only.
+
+## Email notifications (SES)
+
+When a booking is confirmed (browser verify or webhook, whichever wins), the guest gets an email from SES. It is best-effort: a mail failure is logged and never undoes a paid booking, and only the call that actually confirmed the booking sends the mail, so replays do not send duplicates. New AWS accounts start in the SES sandbox, which only delivers to verified addresses; production access is a form request to AWS.

@@ -121,6 +121,11 @@ resource "aws_iam_role_policy" "fn" {
       },
       {
         Effect   = "Allow"
+        Action   = ["ses:SendEmail"]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "${aws_cloudwatch_log_group.fn.arn}:*"
       }
@@ -152,6 +157,7 @@ resource "aws_lambda_function" "api" {
       PHOTO_BUCKET  = aws_s3_bucket.site.bucket
       PHOTO_BASE    = "https://${aws_cloudfront_distribution.site.domain_name}"
       RAZORPAY_PARAM_PREFIX = "/localstay/razorpay"
+      SENDER_EMAIL          = var.budget_email
     }
   }
   depends_on = [aws_cloudwatch_log_group.fn]
@@ -276,4 +282,9 @@ output "user_pool_id" {
 }
 output "client_id" {
   value = aws_cognito_user_pool_client.web.id
+}
+
+# Sender address for booking emails. AWS emails this address a link; click it once.
+resource "aws_ses_email_identity" "sender" {
+  email = var.budget_email
 }
