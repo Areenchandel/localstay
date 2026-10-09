@@ -197,3 +197,11 @@ def test_failed_refund_is_recorded_for_manual_action(h, rz, monkeypatch):
     monkeypatch.setattr(h, "rzp", broken)
     webhook(h, lid, bid, amount)
     assert status(h, lid, bid) == "REFUND_FAILED"
+
+
+def test_listing_list_still_works_after_a_payment_order_exists(h, rz):
+    """The order mapping item also has SK=META; it must never show up as a listing."""
+    lid, bid, _ = held(h)
+    start(h, lid, bid)
+    code, body = call(h, "GET /listings")
+    assert code == 200 and [x["id"] for x in body["listings"]] == [lid]

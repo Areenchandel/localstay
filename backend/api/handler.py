@@ -91,7 +91,7 @@ def list_listings(qs):
     if city:
         r = T.query(IndexName="GSI1", KeyConditionExpression=Key("GSI1PK").eq(f"CITY#{city.lower()}"))
     else:
-        r = T.scan(FilterExpression=Attr("SK").eq("META"))  # fine for a small table; query GSI1 per city when it grows
+        r = T.scan(FilterExpression=Attr("SK").eq("META") & Attr("PK").begins_with("LISTING#"))  # fine for a small table; query GSI1 per city when it grows
     items = r["Items"]
     for i in items:
         i["tonight_price"] = price_for(i, dt.date.today().isoformat())
