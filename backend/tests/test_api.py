@@ -1,7 +1,7 @@
 """Tests for the LocalStay API. DynamoDB is faked with moto, so nothing touches real AWS.
 Run from the backend folder:  python -m pytest tests -v
 """
-import os, sys, json, time, importlib, datetime as dt
+import os, sys, json, time, importlib, threading, datetime as dt
 from concurrent.futures import ThreadPoolExecutor
 
 import boto3
@@ -30,11 +30,18 @@ def h():
         yield handler
 
 
+# moto (the fake DynamoDB) is not thread-safe: parallel calls can crash inside moto with
+# "dictionary changed size during iteration". Run one handler call at a time in tests.
+# The real concurrency race against live DynamoDB is checked by scripts/loadtest.py.
+_MOTO_LOCK = threading.Lock()
+
+
 def call(h, route, body=None, sub=None, qs=None, path=None):
     claims = {"sub": sub, "email": f"{sub}@x.com", "name": f"User {sub}"} if sub else {}
     ev = {"routeKey": route, "body": json.dumps(body or {}), "queryStringParameters": qs, "pathParameters": path,
           "requestContext": {"authorizer": {"jwt": {"claims": claims}}}}
-    r = h.handler(ev, None)
+    with _MOTO_LOCK:
+        r = h.handler(ev, None)
     return r["statusCode"], json.loads(r["body"])
 
 
